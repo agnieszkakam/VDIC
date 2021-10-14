@@ -1,1 +1,4 @@
 s1(14Oct2021:15:56:35):  xrun +elaborate +sv -f /home/student/akamien/VDIC/.dvt/lab01.build 
+s2(14Oct2021:16:17:06):  xrun +elaborate +sv -f /home/student/akamien/VDIC/.dvt/lab01.build 
+s3(14Oct2021:16:18:26):  xrun +elaborate +sv -f /home/student/akamien/VDIC/.dvt/lab01.build 
+s4(14Oct2021:16:19:08):  xrun +elaborate +sv -f /home/student/akamien/VDIC/.dvt/lab01.build 
