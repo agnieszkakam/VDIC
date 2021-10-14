@@ -1,0 +1,1 @@
+s1(09Oct2021:23:37:45):  xrun -compile -l xrun_compile.log -F tb.f -v93 -q +nowarnDSEM2009 +nowarnDSEMEL +nowarnCGDEFN -xmlibdirname INCA_libs +overwrite -nocopyright 
