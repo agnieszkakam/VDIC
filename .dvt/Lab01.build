@@ -6,7 +6,7 @@
 
 
 ################ Verilog Auto-config Directives ################
--clean
-Lab01/srcs/mtm_Alu.vp
+#-clean
+-F Lab01/tb.f
 
 ################ No files found. ################

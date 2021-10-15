@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>srcs</name>
+	<name>Lab01_example_2021</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -12,6 +12,8 @@
 		</buildCommand>
 	</buildSpec>
 	<natures>
+		<nature>ro.amiq.dvt.dvtnature</nature>
 		<nature>ro.amiq.vlogdt.VlogNature</nature>
+		<nature>ro.amiq.vhdldt.VhdlNature</nature>
 	</natures>
 </projectDescription>

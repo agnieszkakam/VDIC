@@ -1,2 +1,3 @@
--F dut.f
-alu_tb.sv
+mtm_Alu_tb.sv 
+mtm_Alu.vp
+
