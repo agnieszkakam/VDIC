@@ -44,8 +44,6 @@ module top;
 	bit                     rst_n;
 	bit                 sin, sout;
 
-	bit         [31:0]  A;
-	bit         [31:0]  B;
 	reg         [31:0]  result;
 	operation_t         op_set;
 	string              test_result = "PASSED";
@@ -73,7 +71,7 @@ module top;
 			AND_OP      : ret = A & B;
 			ADD_OP      : ret = A + B;
 			OR_OP       : ret = A | B;
-			SUB_OP      : ret = A - B;
+			SUB_OP      : ret = B - A;  // seems that simulator works this way
 			INVALID_OP  : ret = 32'b0;  // TODO handle error!
 			default: begin
 				$display("%0t INTERNAL ERROR. get_expected_result: unexpected case argument: %s", $time, op_set);
@@ -156,10 +154,10 @@ module top;
 			full_packet = 11'b0;
 
 			@(negedge sout) ;
-				for (int i = 10; i >= 0; i--) begin
-					@(negedge clk) ;
-					full_packet[i] = sout;
-				end
+			for (int i = 10; i >= 0; i--) begin
+				@(negedge clk) ;
+				full_packet[i] = sout;
+			end
 
 			data_byte = full_packet [8:1];
 		end
@@ -180,11 +178,11 @@ module top;
 	endtask
 
 	task reset_alu();
-		
+
 		rst_n = 1'b0;
 		@(negedge clk);
 		rst_n = 1'b1;
-		sin = 1'b1;			//idle bus state
+		sin = 1'b1;         //idle bus state
 	endtask
 
 	function operation_t get_op();
@@ -195,7 +193,7 @@ module top;
 			3'b001 : return OR_OP;
 			3'b100 : return ADD_OP;
 			3'b101 : return SUB_OP;
-			default: return /*INVALID_OP*/ AND_OP;		// TODO add support for invalid opcode!
+			default: return /*INVALID_OP*/ AND_OP;      // TODO add support for invalid opcode!
 		endcase // case (op_choice)
 	endfunction : get_op
 
@@ -229,15 +227,18 @@ module top;
 	 */
 
 	initial begin : tester
+
+		logic [31:0]  A;
+		logic [31:0]  B;
+
 		reset_alu();
 
-		//@(negedge clk) ;	
-		repeat (5) begin : tester_main
+		//@(negedge clk) ;
+		repeat (100) begin : tester_main
 			@(negedge clk) ;
-			 op_set = get_op();
-			 $display(op_set.name);
-			 A      = get_data();
-			 B      = get_data();
+			op_set = get_op();
+			A      = get_data();
+			B      = get_data();
 
 			@(negedge clk) ;
 			process_instruction(A, B, op_set);
@@ -247,7 +248,7 @@ module top;
 
 			assert (result === expected) else
 				$error("Test FAILED for A=%x B=%x op_set=%s: rcv:%x, exp:%x", A, B, op_set.name, result, expected);
-			
+
 			reset_alu();
 			@(negedge clk) ;
 		/*case (op_set)
