@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+
 /*
  Copyright 2013 Ray Salemi
 
@@ -14,8 +15,8 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
- 
- ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 // Copyright (C) 1999-2008 Easics NV.
 // This source file may be used and distributed without restriction
 // provided that this copyright statement is not removed from the file
@@ -34,7 +35,7 @@
 // Info : tools@easics.be
 //        http://www.easics.com
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 module top;
 
 	/**
@@ -54,29 +55,28 @@ module top;
 		CMD = 1'b1
 	} packet_t;
 
-	typedef enum bit [1:0] {
-		ERR_DATA    = 2'b00,
-		ERR_CRC     = 2'b01,
-		ERR_OP      = 3'b10
+	typedef enum bit [2:0] {
+		ERR_DATA    = 3'b100,
+		ERR_CRC     = 3'b010,
+		ERR_OP      = 3'b001
 	} processing_error_t;
 
 
 	/**
-	 * Local variables and signals
+	 * Local variables, parameters and signals
 	 */
 
 	localparam start_bit = 1'b0;
 	localparam stop_bit = 1'b1;
 
-	bit                     clk;
-	bit                     rst_n;
-	bit                 sin, sout;
+	bit clk;
+	bit rst_n;
+	bit sin, sout;
 
-	reg         [31:0]  result;
-	bit                 crc_corr;
-	bit         [3:0]   resp_flags;
-	operation_t         op_set;
-	string              test_result = "PASSED";
+	reg [31:0]  result;         //TODO move to 'tester' block?
+	operation_t op_set;
+	string test_result = "PASSED";
+
 
 	/**
 	 * DUT instantiation
@@ -89,40 +89,33 @@ module top;
 	 * Tasks and functions definitions
 	 */
 
-	task   get_expected_result ( output logic [31:0] ret, logic [3:0] flags, input bit  [31:0] A, bit  [31:0] B, operation_t op_set);
+	function bit IsOverflow;
+		input [31:0] A, B, result;
+		input operation_t opcode;
 		begin
-
-			logic  [32:0] ret_33b;
-
-			case(op_set)
-				AND_OP: begin
-					ret = A & B;
-					flags = {2'b00, (ret == 0), ret[31]};                   /*Carry, Overflow, Zero, Negative*/
+			case(opcode)
+				ADD_OP:     begin
+					IsOverflow = ((!A[31] && !B[31] && result[31]) || (A[31] && B[31] && !result[31]));
 				end
-				ADD_OP: begin
-					ret = A + B;
-					ret_33b = A + B;
-					flags = {ret_33b[32], ((!A[31] && !B[31] && ret[31]) || (A[31] && B[31] && !ret[31]) ), (ret == 0), ret[31]};  
-				end
-				OR_OP : begin
-					ret = A | B;
-					flags = {2'b00, (ret == 0), ret[31]};  
-				end
-				SUB_OP: begin
-					ret = B - A;  
-					ret_33b = B - A;
-					flags = {ret_33b[32], ((1'b1 ~^ !A[31] ~^ B[31]) && (!A[31] ^ ret[31])), (ret == 0), ret[31]}; 
-				end
-				INVALID_OP  : ret = 32'b0;  // TODO handle error!
-				default: begin
-					$display("%0t INTERNAL ERROR. get_expected_result: unexpected case argument: %s", $time, op_set);
-					test_result = "FAILED";
-				end
+				SUB_OP:     IsOverflow = (1'b1 ~^ !A[31] ~^ B[31]) && (!A[31] ^ result[31]);
+				default:    IsOverflow = 1'b0;
 			endcase
+		end
+	endfunction
+
+	task generate_parity_bit(output bit parity_bit, input logic [6:0] data);
+		begin
+			automatic logic [2:0] sum = 3'b0;
+			for(int bit_nr = 0; bit_nr < 7; bit_nr++) begin
+				sum = (data[bit_nr]) ? sum++ : sum;
+			end
+			parity_bit = !(sum % 2);
 		end
 	endtask
 
-
+//   - polynomial: x^4 + x^1 + 1
+//   - data width: 68
+//   - convention: the first serial bit is D[67]
 	function [3:0] CRC4_D68;
 
 		input [67:0] Data;
@@ -142,9 +135,9 @@ module top;
 		end
 	endfunction
 
-	// polynomial: x^3 + x^1 + 1
-	// data width: 37
-	// convention: the first serial bit is D[36]
+// polynomial: x^3 + x^1 + 1
+// data width: 37
+// convention: the first serial bit is D[36]
 	function [2:0] CRC3_D37;
 
 		input [36:0] Data;
@@ -176,8 +169,7 @@ module top;
 
 	task process_instruction (input logic  [31:0] A, input logic  [31:0] B, input operation_t opcode);
 		begin
-			automatic logic [3:0] crc;
-			crc = CRC4_D68({B, A, 1'b1, opcode}, 4'b0);
+			logic [3:0] crc;
 
 			for (int i = 3; i >= 0; i--) begin
 				send_packet(DATA, B [8*i +: 8]);
@@ -187,11 +179,12 @@ module top;
 				send_packet(DATA, A [8*i +: 8]);
 			end
 
+			crc = CRC4_D68({B, A, 1'b1, opcode}, 4'b0);
 			send_packet(CMD, {1'b0, opcode, crc});
 		end
 	endtask
 
-	task receive_packet (output byte data_byte/*, output bit error*/);
+	task receive_packet (output byte data_byte);
 		begin
 			logic [10:0] full_packet;
 			full_packet = 11'b0;
@@ -206,73 +199,105 @@ module top;
 		end
 	endtask
 
-	task process_ALU_response (output logic  [31:0] C, bit crc_correct, logic [3:0] flags);
+	task process_ALU_response (output logic  [31:0] C, logic [3:0] flags, logic [2:0] crc);
 		begin
 			logic [7:0] ctl_response;
-			logic [2:0] crc;
 
 			for (int i = 3; i >= 0; i--) begin
 				receive_packet(C [8*i +: 8]);
 			end
 
 			receive_packet(ctl_response);
-
-			flags = ctl_response [6:3];
-			crc = CRC3_D37({C, 1'b0, flags}, 3'b0);
-			crc_correct = (ctl_response[2:0] == crc)? 1'b1 : 1'b0;		// TO DO return CRC; add expected_crc calucaltions to get_Result
-		//$display("From ALU: C=%d, flags=%04b, crc_correct=%d\n", C,flags,crc_correct);        // TODO DELETE THIS LATER
+			{flags, crc} = ctl_response [6:0];
 		end
 	endtask
 
-	task test_alu_processing_error (/*output logic [7:0] ctl, processing_error_t Alu_error,*/  );
+	task test_alu_processing_error (/*output logic [7:0] ctl,*/ input processing_error_t Alu_error);
 		begin
-			automatic logic [3:0] crc;
-			automatic logic [31:0] A = 32'($urandom), B = 32'($urandom);					//TODO this is a temporary non-scalable implmentation
-			automatic operation_t  operation = AND_OP;
+			automatic logic [31:0] A = 32'($urandom), B = 32'($urandom);  
+			operation_t  operation;
 			logic [7:0] exp_ALU_reponse, ALU_reponse;
 			logic [5:0] err_flags;
+			logic [3:0] crc;
 			bit parity_bit;
 
-			crc = CRC4_D68({B, A, 1'b1, operation}, 4'b0);
+			case(Alu_error)
+				ERR_DATA:
+				begin
+					automatic logic [2:0] nr_of_packets = 2'($urandom_range(3,0));
+					operation = get_op();
 
-			for (int i = 3; i >= 0; i--) begin
-				send_packet(DATA, B [8*i +: 8]);
-			end
+					for (int i = nr_of_packets; i >= 0; i--) begin
+						send_packet(DATA, B [8*i +: 8]);
+					end
+					nr_of_packets = 2'($urandom_range(2,0));
+					for (int i = nr_of_packets; i >= 0; i--) begin
+						send_packet(DATA, A [8*i +: 8]);
+					end
+					crc = CRC4_D68({B, A, 1'b1, operation}, 4'b0);
+					send_packet(CMD, {1'b0, operation, crc});
+				end
 
-			for (int i = 2; i >= 0; i--) begin
-				send_packet(DATA, A [8*i +: 8]);
-			end
+				ERR_OP:
+				begin
+					operation = operation_t'(3'($urandom_range(7,6)));
+					process_instruction(A,B,operation);
+				end
 
-			send_packet(CMD, {1'b0, operation, crc});
+				ERR_CRC:
+				begin
+					operation = get_op();
 
-			//Suppose error ERR_DATA
+					for (int i = 3; i >= 0; i--) begin
+						send_packet(DATA, B [8*i +: 8]);
+					end
+					for (int i = 3; i >= 0; i--) begin
+						send_packet(DATA, A [8*i +: 8]);
+					end
+
+					crc = CRC4_D68({B, A, 1'b1, operation}, 4'b0);
+					send_packet(CMD, {1'b0, operation, ~crc});
+				end
+			//default:  //other errors not supported - handle it (instructions below should not be executed if invalid)
+			// check if Alu supports merged errors, e.g. ERR_CRC+ERR_OP
+			endcase
+
 			receive_packet(ALU_reponse);
-			err_flags = 6'b100100;
-			generate_parity_bit(parity_bit, {1'b1,err_flags});
-			exp_ALU_reponse = {1'b1, err_flags, parity_bit};          
+			get_expected_error_packet(exp_ALU_reponse,Alu_error);
 			assert (ALU_reponse === exp_ALU_reponse) else begin
 				$error("Test FAILED for ALU Processing Error testing: exp:%08b, rcv:%08b", exp_ALU_reponse, ALU_reponse);
 			end;
 		end
 	endtask
 
-	task generate_parity_bit(output bit parity_bit, input logic [6:0] data);
+//move this task to the end of tasks list
+	task get_expected_error_packet (output logic [7:0] exp_error_packet, input processing_error_t error_type);
 		begin
-			automatic logic [2:0] sum = 3'b0;
-			for(int bit_nr = 0; bit_nr < 7; bit_nr++) begin
-				sum = (data[bit_nr]) ? sum++ : sum;
-			end
-			parity_bit = !(sum % 2);
+			bit parity_bit;
+			automatic logic [5:0] err_flags = {2{error_type}};
+
+			generate_parity_bit(parity_bit, {1'b1,err_flags});
+			exp_error_packet = {1'b1, err_flags, parity_bit};
 		end
 	endtask
 
 	task reset_alu();
-
 		rst_n = 1'b0;
-		@(negedge clk);
+		@(negedge clk) ;
 		rst_n = 1'b1;
-		sin = 1'b1;         //idle bus state
+		sin = 1'b1;
 	endtask
+
+	function [31:0] get_data();
+		bit [1:0] zero_ones;
+		zero_ones = 2'($urandom);
+		if (zero_ones == 2'b00)
+			return 32'h00;
+		else if (zero_ones == 2'b11)
+			return 32'hFFFF_FFFF;
+		else
+			return 32'($urandom);
+	endfunction : get_data
 
 	function operation_t get_op();
 		bit [2:0] op_choice;
@@ -286,16 +311,51 @@ module top;
 		endcase // case (op_choice)
 	endfunction : get_op
 
-	function [31:0] get_data();
-		bit [1:0] zero_ones;
-		zero_ones = 2'($urandom);
-		if (zero_ones == 2'b00)
-			return 32'h00;
-		else if (zero_ones == 2'b11)
-			return 32'hFFFF_FFFF;
-		else
-			return 32'($urandom);
-	endfunction : get_data
+	function get_error_code;
+
+		output processing_error_t error_code;
+
+		begin
+			error_code = processing_error_t'(3'b000);
+			error_code[$urandom_range(2,0)] = 1'b1;;
+		end
+
+	endfunction
+
+
+	task get_expected_result ( output logic [31:0] result, logic [3:0] flags, output logic [3:0] crc, input bit  [31:0] A, bit  [31:0] B, operation_t op_set);
+		begin
+
+			logic  [32:0] result_33b;
+
+			case(op_set)
+				AND_OP: begin
+					result = A & B;
+					result_33b = A & B;
+				end
+				ADD_OP: begin
+					result = A + B;
+					result_33b = A + B;
+				end
+				OR_OP : begin
+					result = A | B;
+					result_33b = A | B;
+				end
+				SUB_OP: begin
+					result = B - A;
+					result_33b = B - A;
+				end
+				INVALID_OP  : result = 32'b0;  // TODO handle error!
+				default: begin
+					$display("%0t INTERNAL ERROR. get_expected_result: unexpected case argument: %s", $time, op_set);
+					test_result = "FAILED";
+				end
+			endcase
+
+			flags = {result_33b[32], IsOverflow(A, B, result, op_set), (result == 0), result[31]};        /*Carry, Overflow, Zero, Negative*/
+			crc = CRC3_D37({result, 1'b0, flags}, 3'b0);
+		end
+	endtask
 
 
 	/**
@@ -319,12 +379,13 @@ module top;
 
 		logic  [31:0]  A;
 		logic  [31:0]  B;
+		processing_error_t error_code;
 
 		reset_alu();
 
 		repeat (100) begin : tester_main
 			@(negedge clk) ;
-			op_set = get_op();  
+			op_set = get_op();
 			A      = get_data();
 			B      = get_data();
 
@@ -340,23 +401,26 @@ module top;
 					//------------------------------------------------------------------------------
 					// temporary data check - scoreboard will do the job later
 					begin
-						automatic bit [31:0] expected_data;
-						automatic logic [3:0] expected_flags;
-						get_expected_result(expected_data, expected_flags, A, B, op_set);
-						process_ALU_response(result, crc_corr, resp_flags);
+						bit [31:0] expected_data;
+						logic [3:0] expected_flags, rcv_flags;
+						logic [2:0] expected_crc, rcv_crc;
+						get_expected_result(expected_data, expected_flags, expected_crc, A, B, op_set);
+						process_ALU_response(result, rcv_flags, rcv_crc);
 						assert (result === expected_data) else begin
 							$error("Test FAILED for A=%x B=%x op_set=%s (data): rcv:%x, exp:%x", A, B, op_set.name, result, expected_data);
 							test_result = "FAILED";
 						end;
-						assert (resp_flags === expected_flags) else begin
-							$error("Test FAILED for A=%x B=%x op_set=%s (flags): rcv:%04b, exp:%04b (TEMPORARY-result=%x)", A, B, op_set.name, resp_flags, expected_flags,result);
+						assert (rcv_flags === expected_flags) else begin
+							$error("Test FAILED for A=%x B=%x op_set=%s (flags): rcv:%04b, exp:%04b", A, B, op_set.name, rcv_flags, expected_flags);
 							test_result = "FAILED";
 						end;
-						assert (crc_corr === 1'b1) else begin       // TODO change to crc value
-							$error("Test FAILED for A=%x B=%x op_set=%s (crc)", A, B, op_set.name);
+						assert (rcv_crc === expected_crc) else begin
+							$error("Test FAILED for A=%x B=%x op_set=%s (crc): rcv:%03b, exp:%03b", A, B, op_set.name, rcv_crc, expected_crc);
 							test_result = "FAILED";
 						end;
-						test_alu_processing_error();
+
+						get_error_code(error_code);
+						test_alu_processing_error(error_code);
 					end
 
 				end
