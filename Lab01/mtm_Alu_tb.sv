@@ -93,9 +93,7 @@ module top;
 		input operation_t opcode;
 		begin
 			case(opcode)
-				ADD_OP:     begin
-					IsOverflow = ((!A[31] && !B[31] && result[31]) || (A[31] && B[31] && !result[31]));
-				end
+				ADD_OP:     IsOverflow = ((!A[31] && !B[31] && result[31]) || (A[31] && B[31] && !result[31]));
 				SUB_OP:     IsOverflow = (1'b1 ~^ !A[31] ~^ B[31]) && (!A[31] ^ result[31]);
 				default:    IsOverflow = 1'b0;
 			endcase
@@ -270,9 +268,9 @@ module top;
 					send_packet(CMD, {1'b0, operation, ~crc});
 				end
 			endcase
-			
+
 			process_ALU_response(ALU_data,ctl);
-			
+
 		end
 	endtask
 
@@ -389,14 +387,14 @@ module top;
 		automatic logic  [31:0]  A;
 		automatic logic  [31:0]  B;
 		reg [31:0]  rcv_data, expected_data;
-		processing_error_t error_code;
-		logic [7:0] rcv_control_packet, exp_control_packet, error_response, exp_error_response;
+
+		logic [7:0] rcv_control_packet, exp_control_packet;
 		logic [3:0] expected_flags;
 		logic [2:0] expected_crc;
 
 		reset_alu();
 
-		repeat (10) begin : tester_main
+		repeat (500) begin : tester_main
 			@(negedge clk) ;
 			op_set = get_op();
 			A      = get_data();
@@ -416,6 +414,15 @@ module top;
 				$error("Test FAILED for A=%x B=%x op_set=%s (ctl): rcv:%x, exp:%x", A, B, op_set.name, rcv_control_packet, exp_control_packet);
 				test_result = "FAILED";
 			end;
+		// print coverage after each loop
+		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
+		// if($get_coverage() == 100) break;
+		end
+
+		repeat(500) begin   : tester_errors
+
+			processing_error_t error_code;
+			logic [7:0] error_response, exp_error_response;
 
 			get_error_code(error_code);
 			test_alu_processing_error(error_response, error_code);
@@ -425,11 +432,8 @@ module top;
 				$error("Test FAILED for error_code=%s (ctl): rcv:%08b, exp:%08b", error_code.name, error_response, exp_error_response);
 				test_result = "FAILED";
 			end;
-
-		// print coverage after each loop
-		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
-		// if($get_coverage() == 100) break;
 		end
+
 		$finish;
 	end : tester
 
