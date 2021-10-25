@@ -73,7 +73,7 @@ module top;
 	bit rst_n;
 	bit sin, sout;
 
-	automatic operation_t op_set;
+	operation_t op_set;
 	string test_result = "PASSED";
 
 
@@ -191,12 +191,12 @@ module top;
 				@(negedge clk) ;
 
 			packet_type = (sout == 1'b1) ? CMD : DATA;
-			
+
 			for (int i = 7; i >= 0; i--) begin
 				@(negedge clk) ;
 				rcv_byte[i] = sout;
 			end
-			
+
 			@(negedge clk) ;
 		end
 	endtask
@@ -212,21 +212,22 @@ module top;
 				i--;
 			end while (packet == DATA);
 
-			if (i == 3'b111) begin						//i - roll over
+			if (i == 3'b111) begin                      //i - roll over
 				data = maximum_response[39:8];
 				ctl = maximum_response[7:0];
 			end
 			else begin
-				ctl = maximum_response[7:0];
+				ctl = maximum_response[39:32];
 			end
 		end
 	endtask
 
-	task test_alu_processing_error (/*output logic [7:0] ctl,*/ input processing_error_t Alu_error);
+	task test_alu_processing_error (output logic [7:0] ctl, input processing_error_t Alu_error);
 		begin
 			automatic logic [31:0] A = 32'($urandom), B = 32'($urandom);
 			operation_t  operation;
-			logic [7:0] exp_ALU_reponse, ALU_reponse;
+			packet_t ALU_reponse_type;
+			logic [31:0] ALU_data;
 			logic [5:0] err_flags;
 			logic [3:0] crc;
 			bit parity_bit;
@@ -268,25 +269,10 @@ module top;
 					crc = CRC4_D68({B, A, 1'b1, operation}, 4'b0);
 					send_packet(CMD, {1'b0, operation, ~crc});
 				end
-			//default:  //other errors not supported - handle it (instructions below should not be executed if invalid)
-			// TODO check if Alu supports merged errors, e.g. ERR_CRC+ERR_OP
 			endcase
-			receive_packet(ALU_reponse);
-			get_expected_error_packet(exp_ALU_reponse,Alu_error);
-			assert (ALU_reponse === exp_ALU_reponse) else begin
-				$error("Test FAILED for ALU Processing Error testing: exp:%08b, rcv:%08b", exp_ALU_reponse, ALU_reponse);
-			end;
-		end
-	endtask
-
-//move this task to the end of tasks list
-	task get_expected_error_packet (output logic [7:0] exp_error_packet, input processing_error_t error_type);
-		begin
-			bit parity_bit;
-			automatic logic [5:0] err_flags = {2{error_type}};
-
-			generate_parity_bit(parity_bit, {1'b1,err_flags});
-			exp_error_packet = {1'b1, err_flags, parity_bit};
+			
+			process_ALU_response(ALU_data,ctl);
+			
 		end
 	endtask
 
@@ -359,10 +345,9 @@ module top;
 					result_ctl[2:0] = CRC3_D37({result_data, 1'b0, result_ctl[6:3]}, 3'b0);
 				end
 				INVALID_OP  : begin
-					result_data = 32'b0;  			// TODO handle error!
 					result_ctl[7] = 1'b1;
 					result_ctl[6:1] = {2{ERR_OP}};
-					generate_parity_bit(result_ctl[0], result_ctl[6:0]);
+					generate_parity_bit(result_ctl[0], result_ctl[7:1]);
 				end
 				default: begin
 					$display("%0t INTERNAL ERROR. get_expected_result_data: unexpected case argument: %s", $time, op_set);
@@ -372,6 +357,15 @@ module top;
 		end
 	endtask
 
+	task get_expected_error_packet (output logic [7:0] exp_error_packet, input processing_error_t error_type);
+		begin
+			bit parity_bit;
+			automatic logic [5:0] err_flags = {2{error_type}};
+
+			generate_parity_bit(parity_bit, {1'b1,err_flags});
+			exp_error_packet = {1'b1, err_flags, parity_bit};
+		end
+	endtask
 
 	/**
 	 * Clock generator
@@ -396,7 +390,7 @@ module top;
 		automatic logic  [31:0]  B;
 		reg [31:0]  rcv_data, expected_data;
 		processing_error_t error_code;
-		logic [7:0] rcv_control_packet, exp_control_packet;
+		logic [7:0] rcv_control_packet, exp_control_packet, error_response, exp_error_response;
 		logic [3:0] expected_flags;
 		logic [2:0] expected_crc;
 
@@ -414,17 +408,23 @@ module top;
 
 			get_expected_result(expected_data, exp_control_packet, A, B, op_set);
 
-			assert ((rcv_data === expected_data) && exp_control_packet[7] == 1'b0) else begin
+			assert (rcv_data === expected_data) else begin
 				$error("Test FAILED for A=%x B=%x op_set=%s (data): rcv:%x, exp:%x", A, B, op_set.name, rcv_data, expected_data);
 				test_result = "FAILED";
 			end;
 			assert (rcv_control_packet === exp_control_packet) else begin
-				$error("Test FAILED for A=%x B=%x op_set=%s (ctl): rcv:%08b, exp:%08b", A, B, op_set.name, rcv_control_packet, exp_control_packet);
+				$error("Test FAILED for A=%x B=%x op_set=%s (ctl): rcv:%x, exp:%x", A, B, op_set.name, rcv_control_packet, exp_control_packet);
 				test_result = "FAILED";
 			end;
-		/*
-		 get_error_code(error_code);
-		 test_alu_processing_error(error_code);*/    //TODO temporarily disabled
+
+			get_error_code(error_code);
+			test_alu_processing_error(error_response, error_code);
+			get_expected_error_packet(exp_error_response, error_code);
+
+			assert (error_response === exp_error_response) else begin
+				$error("Test FAILED for error_code=%s (ctl): rcv:%08b, exp:%08b", error_code.name, error_response, exp_error_response);
+				test_result = "FAILED";
+			end;
 
 		// print coverage after each loop
 		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
