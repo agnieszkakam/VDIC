@@ -74,9 +74,10 @@ module top;
 	bit sin, sout;
 
 	logic  [31:0]  A, B, rcv_data;
-	logic  [7:0]   rcv_control_packet;
-	bit done;
+	logic  [7:0]   rcv_control_packet, error_response;
+	bit done, error_state;
 
+	processing_error_t error_code;
 	operation_t op_set;
 	string test_result = "PASSED";
 
@@ -290,6 +291,7 @@ module top;
 
 		sin = 1'b1;
 		done = 1'b0;
+		error_state = 1'b0;
 	endtask
 
 	function [31:0] get_data();
@@ -317,7 +319,6 @@ module top;
 			error_code[$urandom_range(2,0)] = 1'b1;
 		end
 	endtask
-
 
 	task get_expected_result ( output logic [31:0] result_data, logic [7:0] result_ctl, input bit  [31:0] A, bit  [31:0] B, operation_t op_set);
 		begin
@@ -376,6 +377,7 @@ module top;
 		end
 	endtask
 
+
 	/**
 	 * Clock generator
 	 */
@@ -403,7 +405,7 @@ module top;
 			A      = get_data();
 			B      = get_data();
 
-			@(negedge clk);
+			@(negedge clk) ;
 			process_instruction(A, B, op_set);
 			process_ALU_response(rcv_data, rcv_control_packet);
 
@@ -411,22 +413,21 @@ module top;
 		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
 		// if($get_coverage() == 100) break;
 		end
-		/*
-		 repeat(500) begin   : tester_errors
 
-		 processing_error_t error_code;
-		 logic [7:0] error_response, exp_error_response;
+		@(negedge clk) ;
 
-		 get_error_code(error_code);
-		 test_alu_processing_error(error_response, error_code);
-		 get_expected_error_packet(exp_error_response, error_code);
+		repeat(500) begin   : tester_errors
+			op_set = get_op();
+			A      = get_data();
+			B      = get_data();
 
-		 assert (error_response === exp_error_response) else begin
-		 $error("Test FAILED for error_code=%s (ctl): rcv:%08b, exp:%08b", error_code.name, error_response, exp_error_response);
-		 test_result = "FAILED";
-		 end;
-		 end
-		 */
+			error_state = 1'b1;
+			get_error_code(error_code);
+			test_alu_processing_error(error_response, error_code);
+			error_state = 1'b0;
+
+		end
+
 		$finish;
 	end : tester
 
@@ -436,32 +437,50 @@ module top;
 	always @(negedge clk) begin : scoreboard
 		if(done) begin : verify_result
 			logic [31:0] expected_data;
-			logic [7:0] expected_ctl_packet;
+			logic [7:0]  expected_ctl_packet, exp_error_response;
 
 			get_expected_result(expected_data, expected_ctl_packet, A, B, op_set);
+			get_expected_error_packet(exp_error_response, error_code);
 
 			@(posedge clk) ;
-			CHK_RESULT: assert(rcv_data === expected_data) begin
+			case (error_state)
+				1'b0: begin : CHK_RESULT_AND_CTL
+					assert(rcv_data === expected_data) begin
 		   `ifdef DEBUG
-				$display("%0t Test passed for A=%08x B=%08x op_set=%s (data)", $time, A, B, op_set.name);
+						$display("%0t Test passed for A=%08x B=%08x op_set=%s (data)", $time, A, B, op_set.name);
 		   `endif
-			end
-			else begin
-				$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (data)\nexp: %08x  rcv: %08x",
-					$time, A, B, op_set.name, expected_data, rcv_data);
-				test_result = "FAILED";
-			end;
+					end
+					else begin
+						$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (data)\nexp: %08x  rcv: %08x",
+							$time, A, B, op_set.name, expected_data, rcv_data);
+						test_result = "FAILED";
+					end;
 
-			CHK_CTL: assert(rcv_control_packet === expected_ctl_packet) begin
+					assert(rcv_control_packet === expected_ctl_packet) begin
 		   `ifdef DEBUG
-				$display("%0t Test passed for A=%08x B=%08x op_set=%s (ctl)", $time, A, B, op_set.name);
+						$display("%0t Test passed for A=%08x B=%08x op_set=%s (ctl)", $time, A, B, op_set.name);
 		   `endif
-			end
-			else begin
-				$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (ctl)\nexp: %08x  rcv: %08x",
-					$time, A, B, op_set.name, expected_ctl_packet, rcv_control_packet);
-				test_result = "FAILED";
-			end;
+					end
+					else begin
+						$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (ctl)\nexp: %08x  rcv: %08x",
+							$time, A, B, op_set.name, expected_ctl_packet, rcv_control_packet);
+						test_result = "FAILED";
+					end;
+				end
+
+				1'b1: begin : CHK_ERR
+					assert(exp_error_response === error_response) begin
+		   `ifdef DEBUG
+						$display("%0t Test passed for A=%08x B=%08x op_set=%s (%s)", $time, A, B, op_set.name, error_code.name);
+		   `endif
+					end
+					else begin
+						$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (%s)\nexp: %08b  rcv: %08b",
+							$time, A, B, op_set.name, error_code.name, exp_error_response, error_response);
+						test_result = "FAILED";
+					end;
+				end
+			endcase
 		end
 	end : scoreboard
 
