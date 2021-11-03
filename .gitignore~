@@ -3,7 +3,7 @@
 *.err
 *.key
 
-**/xcelium.d/**
+xcelium.d/**
 .bpad/
 waves.shm/
 INCA_libs
