@@ -2,9 +2,13 @@
 *.history
 *.err
 *.key
+*.diag
+**/*.diag
 
 **/xcelium.d/**
 xcelium.d/**
+**/cov_work/**
+**/.simvision/**
 .bpad/
 waves.shm/
 INCA_libs
