@@ -47,6 +47,7 @@ module top;
 		OR_OP        = 3'b001,
 		ADD_OP       = 3'b100,
 		SUB_OP       = 3'b101,
+		RST_OP       = 3'b110,
 		INVALID_OP   = 3'b111
 	} operation_t;
 
@@ -87,6 +88,146 @@ module top;
 	 */
 
 	mtm_Alu DUT (.clk, .rst_n, .sin, .sout);
+
+
+	/**
+	 * Coverage block
+	 */
+
+	// Covergroup checking the op codes and their sequences
+	covergroup op_cov;
+
+		option.name = "cg_op_cov";
+
+		coverpoint op_set {
+			// #A1 test all operations
+			bins A1_all_op[] = {[AND_OP : SUB_OP]};
+
+			// #A2 test all operations after reset
+			bins A2_rst_opn[]      = (RST_OP => [AND_OP : SUB_OP]);
+
+			// #A3 test reset after all operations
+			bins A3_opn_rst[]      = ([AND_OP : SUB_OP] => RST_OP);
+
+			// #A4 two operations in row
+			bins A4_twoops[]       = ([AND_OP : SUB_OP] [* 2]);
+
+		}
+
+	endgroup
+
+	// Covergroup checking for specific data corners
+	covergroup data_corners;
+
+		option.name = "cg_specific_data_corners";
+
+		all_ops : coverpoint op_set {
+			ignore_bins null_ops = {RST_OP, INVALID_OP};
+		}
+
+		a_leg: coverpoint A {
+			bins zeros = {32'h0000_0000};
+			bins others= {[32'h0000_0001 : 32'hFFFF_FFFE]};
+			bins ones  = {32'hFFFF_FFFF};
+		}
+
+		b_leg: coverpoint B {
+			bins zeros = {32'h0000_0000};
+			bins others= {[32'h0000_0001 : 32'hFFFF_FFFE]};
+			bins ones  = {32'hFFFF_FFFF};
+		}
+
+		error_leg: coverpoint error_code	{
+			bins err_data = {ERR_DATA};
+			bins err_crc = {ERR_CRC};
+			bins err_op = {ERR_OP};
+		}
+
+		c_zeros_ones: cross a_leg, b_leg, all_ops, error_leg {
+
+			// #C1 simulate all zero input for all the operations
+
+			bins C1_add_zeros          = binsof (all_ops) intersect {ADD_OP} &&
+			(binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+			bins C1_and_zeros          = binsof (all_ops) intersect {AND_OP} &&
+			(binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+			bins C1_or_zeros          = binsof (all_ops) intersect {OR_OP} &&
+			(binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+			bins C1_sub_zeros          = binsof (all_ops) intersect {SUB_OP} &&
+			(binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+			// #C2 simulate all one input for all the operations
+
+			bins C2_add_ones          = binsof (all_ops) intersect {ADD_OP} &&
+			(binsof (a_leg.ones) || binsof (b_leg.ones));
+
+			bins C2_and_ones          = binsof (all_ops) intersect {AND_OP} &&
+			(binsof (a_leg.ones) || binsof (b_leg.ones));
+
+			bins C2_or_ones           = binsof (all_ops) intersect {OR_OP} &&
+			(binsof (a_leg.ones) || binsof (b_leg.ones));
+
+			bins C2_sub_ones          = binsof (all_ops) intersect {SUB_OP} &&
+			(binsof (a_leg.ones) || binsof (b_leg.ones));
+
+			bins C2_add_ones_max      = binsof (all_ops) intersect {ADD_OP} &&
+			(binsof (a_leg.ones) && binsof (b_leg.ones));
+
+			ignore_bins others_only   =	binsof(a_leg.others) && binsof(b_leg.others);
+			
+			// #C4 simulate invalid OP on an input 
+
+			bins C4_invalid_op        = binsof (error_leg.err_op);
+
+			// #C5 simulate invalid CRC on an input for all operations 
+
+			bins C5_invalid_crc_add   = binsof (all_ops) intersect {ADD_OP} &&
+			binsof (error_leg.err_crc);
+			
+			bins C5_invalid_crc_and   = binsof (all_ops) intersect {AND_OP} &&
+			binsof (error_leg.err_crc);
+			
+			bins C5_invalid_crc_or    = binsof (all_ops) intersect {OR_OP} &&
+			binsof (error_leg.err_crc);
+			
+			bins C5_invalid_crc_sub   = binsof (all_ops) intersect {SUB_OP} &&
+			binsof (error_leg.err_crc);
+			
+			// #C6 simulate invalid DATA on an input for all operations 
+
+			bins C6_invalid_crc_add   = binsof (all_ops) intersect {ADD_OP} &&
+			binsof (error_leg.err_data);
+			
+			bins C6_invalid_crc_and   = binsof (all_ops) intersect {AND_OP} &&
+			binsof (error_leg.err_data);
+			
+			bins C6_invalid_crc_or    = binsof (all_ops) intersect {OR_OP} &&
+			binsof (error_leg.err_data);
+			
+			bins C6_invalid_crc_sub   = binsof (all_ops) intersect {SUB_OP} &&
+			binsof (error_leg.err_data);
+		}
+
+	endgroup
+
+	op_cov                      oc;
+	data_corners        c_data_corn;
+
+	initial begin : coverage
+		oc      = new();
+		c_data_corn = new();
+		
+		forever begin : sample_cov
+			@(posedge clk);
+			if(done || !rst_n) begin
+				oc.sample();
+				c_data_corn.sample();
+			end
+		end
+	end : coverage
 
 
 	/**
@@ -285,6 +426,11 @@ module top;
 	endtask
 
 	task reset_alu();
+
+		  `ifdef DEBUG
+		$display("*** ALU RESET ***");
+		   `endif
+
 		rst_n = 1'b0;
 		@(negedge clk) ;
 		rst_n = 1'b1;
@@ -308,7 +454,7 @@ module top;
 	function operation_t get_op();
 		automatic bit [2:0] op_choice = $random;
 		case (op_choice)
-			3'b000, 3'b001, 3'b100, 3'b101 : return operation_t'(op_choice);
+			3'b000, 3'b001, 3'b100, 3'b101, 3'b110 : return operation_t'(op_choice);
 			default: return INVALID_OP;
 		endcase // case (op_choice)
 	endfunction : get_op
@@ -359,6 +505,7 @@ module top;
 					result_ctl[6:1] = {2{ERR_OP}};
 					generate_parity_bit(result_ctl[0], result_ctl[7:1]);
 				end
+				RST_OP: begin end
 				default: begin
 					$display("%0t INTERNAL ERROR. get_expected_result_data: unexpected case argument: %s", $time, op_set);
 					test_result = "FAILED";
@@ -406,8 +553,16 @@ module top;
 			B      = get_data();
 
 			@(negedge clk) ;
-			process_instruction(A, B, op_set);
-			process_ALU_response(rcv_data, rcv_control_packet);
+
+			case (op_set)
+				RST_OP: begin : rst_op
+					reset_alu();
+				end
+				default: begin : norm_op
+					process_instruction(A, B, op_set);
+					process_ALU_response(rcv_data, rcv_control_packet);
+				end
+			endcase
 
 		// print coverage after each loop
 		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
@@ -431,9 +586,11 @@ module top;
 		$finish;
 	end : tester
 
-//------------------------------------------------------------------------------
-// Scoreboard
-//------------------------------------------------------------------------------
+
+	/**
+	 * Scoreboard
+	 */
+
 	always @(negedge clk) begin : scoreboard
 		if(done) begin : verify_result
 			logic [31:0] expected_data;
