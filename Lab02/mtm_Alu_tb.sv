@@ -101,16 +101,16 @@ module top;
 
 		coverpoint op_set {
 			// #A1 test all operations
-			bins A1_all_op[] = {[AND_OP : SUB_OP]};
+			bins A1_all_op[] = {[AND_OP : OR_OP], [ADD_OP : SUB_OP]};
 
 			// #A2 test all operations after reset
-			bins A2_rst_opn[]      = (RST_OP => [AND_OP : SUB_OP]);
+			bins A2_rst_opn[]      = (RST_OP => [AND_OP : OR_OP], [ADD_OP : SUB_OP]);
 
 			// #A3 test reset after all operations
-			bins A3_opn_rst[]      = ([AND_OP : SUB_OP] => RST_OP);
+			bins A3_opn_rst[]      = ([AND_OP : OR_OP], [ADD_OP : SUB_OP] => RST_OP);
 
 			// #A4 two operations in row
-			bins A4_twoops[]       = ([AND_OP : SUB_OP] [* 2]);
+			bins A4_twoops[]       = ([AND_OP : OR_OP], [ADD_OP : SUB_OP] [* 2]);
 
 		}
 
@@ -546,7 +546,7 @@ module top;
 
 		reset_alu();
 
-		repeat (500) begin : tester_main
+		repeat (5000) begin : tester_main
 			@(negedge clk) ;
 			op_set = get_op();
 			A      = get_data();
@@ -566,12 +566,15 @@ module top;
 
 		// print coverage after each loop
 		// $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
-		// if($get_coverage() == 100) break;
+		if($get_coverage() == 100) begin
+			$strobe("%0t **** Full coverage detected ****", $time);
+			break;
+		end
 		end
 
 		@(negedge clk) ;
 
-		repeat(500) begin   : tester_errors
+		repeat(5000) begin   : tester_errors
 			op_set = get_op();
 			A      = get_data();
 			B      = get_data();
@@ -590,8 +593,9 @@ module top;
 	/**
 	 * Scoreboard
 	 */
-
-	always @(negedge clk) begin : scoreboard
+initial 
+	forever begin : scoreboard 
+		@(negedge clk)  
 		if(done) begin : verify_result
 			logic [31:0] expected_data;
 			logic [7:0]  expected_ctl_packet, exp_error_response;
@@ -601,8 +605,8 @@ module top;
 
 			@(posedge clk) ;
 			case (error_state)
-				1'b0: begin : CHK_RESULT_AND_CTL
-					assert(rcv_data === expected_data) begin
+				1'b0: begin 
+					assert(rcv_data === expected_data) begin : CHK_RESULT
 		   `ifdef DEBUG
 						$display("%0t Test passed for A=%08x B=%08x op_set=%s (data)", $time, A, B, op_set.name);
 		   `endif
@@ -613,7 +617,7 @@ module top;
 						test_result = "FAILED";
 					end;
 
-					assert(rcv_control_packet === expected_ctl_packet) begin
+					assert(rcv_control_packet === expected_ctl_packet) begin : CHK_CTL
 		   `ifdef DEBUG
 						$display("%0t Test passed for A=%08x B=%08x op_set=%s (ctl)", $time, A, B, op_set.name);
 		   `endif
