@@ -16,7 +16,7 @@
 
 #------------------------------------------------------------------------------
 # The list of tests; in GUI mode only the first test is started.
-TESTS=(lab01);
+TESTS=(Lab03);
 #------------------------------------------------------------------------------
 # Default .f file
 FFILE="tb.f"
@@ -83,6 +83,7 @@ XRUN_ARGS="\
   +nowarnDSEM2009 \
   +nowarnDSEMEL \
   +nowarnCGDEFN \
+  +nowarnCOVUTA \
   -xmlibdirname $INCA \
   $GUI \
   +overwrite \

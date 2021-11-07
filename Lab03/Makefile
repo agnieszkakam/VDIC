@@ -5,6 +5,9 @@ all:
 run:
 	./run_xrun.sh
 
+run_debug:
+	./run_xrun.sh -d
+
 run_quiet:
 	./run_xrun.sh -q
 
