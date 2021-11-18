@@ -4,6 +4,7 @@
 *.key
 *.diag
 **/*.diag
+**/*.rpt
 
 **/xcelium.d/**
 xcelium.d/**
