@@ -137,7 +137,7 @@ module coverage(alu_bfm bfm);
 			B      = bfm.B;
 			op_set = bfm.op_set;
 
-			if(bfm.done || !bfm.rst_n) begin		// TODO 'if' needed?
+			if(bfm.done || !bfm.rst_n) begin
 				oc.sample();
 				c_data_corn.sample();
 			end

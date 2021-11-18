@@ -147,18 +147,12 @@ module tester(alu_bfm bfm);
 
 	initial begin : tester
 
-		//logic [31:0] iA, iB;
-		//operation_t  iOP;
-
 		bfm.reset_alu();
 
 		repeat (5000) begin : tester_main
-			//@(negedge clk) ;
 			bfm.op_set = get_op();
 			bfm.A  = get_data();
 			bfm.B  = get_data();
-
-			//@(negedge clk) ;
 
 			case (bfm.op_set)
 				RST_OP: begin : rst_op

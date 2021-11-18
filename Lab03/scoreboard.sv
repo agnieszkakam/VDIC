@@ -105,22 +105,6 @@ string test_result = "PASSED";
 		end
 	endtask
 
-/*
-always @(negedge bfm.clk) begin
-    if(bfm.done)begin
-        automatic bit [15:0] expected = get_expected(bfm.A, bfm.B, bfm.op_set);
-        assert(bfm.result === expected) begin
-                        `ifdef DEBUG
-            $display("Test passed for A=%0d B=%0d op_set=%0d", bfm.A, bfm.B, bfm.op);
-                        `endif
-        end
-        else begin
-            $display("Test FAILED for A=%0d B=%0d op_set=%0d", bfm.A, bfm.B, bfm.op);
-            $display("Expected: %d  received: %d", expected, bfm.result);
-            test_result = "FAILED";
-        end;
-    end
-end*/
 
 initial 
 	forever begin : scoreboard 
