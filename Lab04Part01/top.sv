@@ -30,8 +30,8 @@ endclass : rectangle
 
 class square extends rectangle;
 
-	function new(real w);
-		super.new(w, w);
+	function new(real side);
+		super.new(side, side);
 	endfunction : new
 
 	function real get_area();
@@ -61,6 +61,25 @@ class triangle extends shape;
 endclass : triangle
 
 
+class shape_reporter #(type T=shape);
+
+	protected static T shape_storage[$];
+
+	static function void capture_shape(T l);
+		shape_storage.push_back(l);
+	endfunction : capture_shape
+
+	static function void report_shapes();
+		real TotalArea = 0;
+		foreach (shape_storage[i]) begin
+			shape_storage[i].print();
+			TotalArea = TotalArea + shape_storage[i].get_area();
+		end
+		$display("Total Area: %g\n", TotalArea);
+	endfunction : report_shapes
+
+endclass : shape_reporter
+
 class shape_factory;
 
 	static function shape make_shape(string figure,
@@ -69,19 +88,22 @@ class shape_factory;
 		case (figure)
 			"rectangle" : begin
 				rectangle rect_h;
-				rect_h = new(width, height);
+				rect_h = new(.w(width), .h(height));
+				shape_reporter #(rectangle)::capture_shape(rect_h);
 				return rect_h;
 			end
 
 			"square" : begin
 				square sq_h;
-				sq_h = new(width);
+				sq_h = new(.side(width));
+				shape_reporter #(square)::capture_shape(sq_h);
 				return sq_h;
 			end
 
 			"triangle" : begin
 				triangle tr_h;
-				tr_h = new(width, height);
+				tr_h = new(.base(width), .h(height));
+				shape_reporter #(triangle)::capture_shape(tr_h);
 				return tr_h;
 			end
 
@@ -94,22 +116,6 @@ class shape_factory;
 
 endclass : shape_factory
 
-/*class shape_reporter #(type T=shape);
-
- protected static T queues shape_storage[$];
-
- static function void cage_shape(T l);
- shape_storage.push_back(l);
- endfunction : cage_animal
-
- static function void report_shapes();
- $display("Reported shapes:");
- foreach (shape_storage[i])
- $display(shape_storage[i].get_name());
- endfunction : report_shapes
-
- endclass : animal_cage
- */
 
 module top;
 
@@ -118,73 +124,24 @@ module top;
 		int fd;
 		string f_name;
 		real f_w, f_h;
-		shape shape_h1,shape_h2,shape_h3,shape_h4, fileshape;
-		rectangle   rect_h;
-		square  sq_h;
-		triangle  tr_h;
+		shape shape_h;
 
-		rect_h = new(2.5,3);
-		sq_h = new(1.5);
-		tr_h = new(2,3);
-
-		rect_h.print();
-		sq_h.print();
-		tr_h.print();
-
-		shape_h1 = shape_factory::make_shape("rectangle", 15, 2);
-		shape_h1.print();
-		shape_h2 = shape_factory::make_shape("square", 15);
-		shape_h2.print();
-		shape_h3 = shape_factory::make_shape("triangle", 3.333,2);
-		shape_h3.print();
-		//shape_h4 = shape_factory::make_shape("trapez", 3.333,2);
-		//shape_h4.print();
-
-		fd = $fopen("/student/akamien/Pobrane/lab04part1_shapes.txt", "r");
-		if (fd) $display("File opened SUCESSFULLY");
-		else $display("File opening FAILED");
-		while ($fscanf(fd, "%s %f %f", f_name, f_w, f_h) == 3) begin
-			fileshape = shape_factory::make_shape(f_name, f_w, f_h);
-			fileshape.print();
-		end
-		$fclose(fd);
+		fd = $fopen("./lab04part1_shapes.txt", "r");
 		
-	/*
-	 animal animal_h;
-	 lion   lion_h;
-	 chicken  chicken_h;
-	 bit cast_ok;
+		if (fd) $display("File opened SUCESSFULLY\n");
+		else 	$display("File opening FAILED\n");
+		
+		while ($fscanf(fd, "%s %f %f", f_name, f_w, f_h) == 3) begin
+			shape_h = shape_factory::make_shape(f_name, f_w, f_h);
+		end
+		
+		$fclose(fd);
 
-	 animal_h = animal_factory::make_animal("lion", 15, "Mustafa");
-	 animal_h.make_sound();
-
-	 cast_ok = $cast(lion_h, animal_h);
-	 if ( ! cast_ok)
-	 $fatal(1, "Failed to cast animal_h to lion_h");
-
-	 if (lion_h.thorn_in_paw) $display("He looks angry!");
-	 animal_cage#(lion)::cage_animal(lion_h);
-
-	 if (!$cast(lion_h, animal_factory::make_animal("lion", 2, "Simba")))
-	 $fatal(1, "Failed to cast animal from factory to lion_h");
-
-	 animal_cage#(lion)::cage_animal(lion_h);
-
-	 if(!$cast(chicken_h ,animal_factory::make_animal("chicken", 1, "Clucker")))
-	 $fatal(1, "Failed to cast animal factory result to chicken_h");
-
-	 animal_cage #(chicken)::cage_animal(chicken_h);
-
-	 if(!$cast(chicken_h, animal_factory::make_animal("chicken", 1, "Boomer")))
-	 $fatal(1, "Failed to cast animal factory result to chicken_h");
-
-	 animal_cage #(chicken)::cage_animal(chicken_h);
-
-	 $display("-- Lions --");
-	 animal_cage #(lion)::list_animals();
-	 $display("-- Chickens --");
-	 animal_cage #(chicken)::list_animals();
-	 */
+		$display("Reported shapes:\n");
+		shape_reporter #(rectangle)::report_shapes();
+		shape_reporter #(square)::report_shapes();
+		shape_reporter #(triangle)::report_shapes();
+		
 	end
 
 endmodule : top
