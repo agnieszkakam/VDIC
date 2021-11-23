@@ -178,6 +178,5 @@ class tester;
 			test_alu_processing_error(bfm.error_response, bfm.error_code);
 			bfm.error_state = 1'b0;
 		end
-		$finish;
 	endtask : execute
 endclass

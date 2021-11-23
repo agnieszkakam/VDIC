@@ -112,8 +112,8 @@ class scoreboard;
 		forever begin : scoreboard
 			logic [31:0] expected_data;
 			logic [7:0]  expected_ctl_packet, exp_error_response;
-			@(negedge bfm.clk)
-				if(bfm.done) begin : verify_result
+			@(posedge bfm.done)
+				if(!bfm.rst_n) begin : verify_result
 
 					get_expected_result(expected_data, expected_ctl_packet, bfm.A, bfm.B, bfm.op_set);
 					get_expected_error_packet(exp_error_response, bfm.error_code);
@@ -165,9 +165,9 @@ class scoreboard;
 				end
 		end
 	endtask : execute
-/*
- final begin : finish_of_the_test
- $display("Test %s.",test_result);
- end*/
+
+	task display_test_result();
+		$display("Test %s.",test_result);
+	endtask : display_test_result
 
 endclass : scoreboard

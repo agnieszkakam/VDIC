@@ -139,7 +139,7 @@ class coverage;
 			op_set = bfm.op_set;
 
 			if(bfm.done || !bfm.rst_n) begin
-				oc_cov.sample();
+				op_cov.sample();
 				data_corners.sample();
 			end
 		end : sampling_block

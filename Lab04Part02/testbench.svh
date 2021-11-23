@@ -18,7 +18,10 @@ class testbench;
             coverage_h.execute();
             scoreboard_h.execute();
             tester_h.execute();
-        join_none
+        join_any
+        disable fork;
+        scoreboard_h.display_test_result();
+        $finish;
     endtask : execute
     
 endclass : testbench
