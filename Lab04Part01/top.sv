@@ -34,10 +34,6 @@ class square extends rectangle;
 		super.new(side, side);
 	endfunction : new
 
-	function real get_area();
-		return (height * width);
-	endfunction : get_area
-
 	function void print();
 		$display ("Square. Width: %g. Area: %g.", width, get_area());
 	endfunction : print
