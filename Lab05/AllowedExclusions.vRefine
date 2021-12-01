@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
 <refinement-file-root>
-  <information comment-version="1" creation-time="Thu 04 Nov 2021 15:24:07 CET" creator="akamien" csCheck="true" modified-by="akamien" modify-time="Thu 04 Nov 2021 15:41:03 CET" save-ref-method="seq" tool-version="Cadence vManager19.09" rules-signature-c="46796382d858658315133020dab6f97">
+  <information comment-version="1" creation-time="Thu 04 Nov 2021 15:24:07 CET" creator="akamien" csCheck="true" modified-by="akamien" modify-time="Wed 01 Dec 2021 20:22:04 CET" save-ref-method="seq" tool-version="Cadence vManager19.09" rules-signature-c="b70b7e9530b3c65fdfa4788414ac51">
     <ucm-files>
-      <ucm-file domain="icc" modelCheckSum="1862453642" path="cov_work/scope/merged_results/icc_6f02c98a_065c7621.ucm"></ucm-file>
+      <ucm-file domain="icc" modelCheckSum="-1" path="cov_work/scope/merged_results/icc_15720977_6ca12e76.ucm"></ucm-file>
     </ucm-files>
     <ccf-files>
-      <ccf-file content="# INCISIVE 15.2;;# enable Constant Object Marking;set_com -on -log;;set_branch_scoring;set_expr_scoring -control *;set_expr_coverable_operators -all -event_or;set_expr_coverable_statements -all;;set_toggle_scoring -sv_enum;set_covergroup -new_instance_reporting -per_instance_default_one;" path="/home/student/akamien/VDIC/Lab02/xrun_covfile.txt"></ccf-file>
+      <ccf-file content="# INCISIVE 15.2;;# enable Constant Object Marking;set_com -on -log;;set_branch_scoring;set_expr_scoring -control *;set_expr_coverable_operators -all -event_or;set_expr_coverable_statements -all;;set_toggle_scoring -sv_enum;set_covergroup -new_instance_reporting -per_instance_default_one;" path="/home/student/akamien/VDIC/Lab05/xrun_covfile.txt"></ccf-file>
     </ccf-files>
   </information>
   <rules>
-    <rule ccType="inst" ccfFlagsMask="4205010-42" domain="icc" entityName="top/97" entityType="block" excTime="1636036665" file="0" im-checksum="1950081409" line="509" name="exclude" reviewer="unknown" text="default: begin" user="1" vscope="default"></rule>
-    <rule ccType="inst" domain="icc" entityName="top/DUT/pout_core/7" entityType="toggle-bit" excTime="1636036801" name="exclude" reviewer="unknown" user="1" vscope="default"></rule>
-    <rule ccType="inst" domain="icc" entityName="top/error_response/7" entityType="toggle-bit" excTime="1636036858" name="exclude" reviewer="unknown" user="1" vscope="default"></rule>
-    <rule ccType="inst" domain="icc" entityName="top/error_response/0" entityType="toggle-bit" excTime="1636036858" name="exclude" reviewer="unknown" user="1" vscope="default"></rule>
+    <rule ccType="inst" domain="icc" entityName="top/DUT/pout_core/7" entityType="toggle-bit" excTime="1636036801" name="exclude" reviewer="unknown" user="0" vscope="default"></rule>
+    <rule ccType="inst" domain="icc" entityName="top/bfm/error_response/7" entityType="toggle-bit" excTime="1638386439" name="exclude" reviewer="unknown" user="0" vscope="default"></rule>
+    <rule ccType="inst" domain="icc" entityName="top/bfm/error_response/0" entityType="toggle-bit" excTime="1638386439" name="exclude" reviewer="unknown" user="0" vscope="default"></rule>
+    <rule ccType="type" domain="icc" entityName="mtm_Alu/pout_core/7" entityType="toggle-bit" excTime="1638386474" name="exclude" packageName="worklib" reviewer="unknown" user="0" vscope="default"></rule>
+    <rule ccType="type" domain="icc" entityName="alu_bfm/error_response/7" entityType="toggle-bit" excTime="1638386499" name="exclude" packageName="worklib" reviewer="unknown" user="0" vscope="default"></rule>
+    <rule ccType="type" domain="icc" entityName="alu_bfm/error_response/0" entityType="toggle-bit" excTime="1638386499" name="exclude" packageName="worklib" reviewer="unknown" user="0" vscope="default"></rule><!--Orphan Rules-->
+    <rule applied="0" ccType="inst" ccfFlagsMask="4205010-42" domain="icc" entityName="top/97" entityType="block" excTime="1636036665" file="1" im-checksum="1950081409" line="509" name="exclude" reviewer="unknown" text="default: begin" user="0" vscope="default"></rule>
   </rules>
   <cache-map>
-    <cache-entry key="0" value="/student/akamien/VDIC/Lab02/mtm_Alu_tb.sv"></cache-entry>
-    <cache-entry key="1" value="akamien"></cache-entry>
+    <cache-entry key="0" value="akamien"></cache-entry>
+    <cache-entry key="1" value="/student/akamien/VDIC/Lab02/mtm_Alu_tb.sv"></cache-entry>
   </cache-map>
 </refinement-file-root>

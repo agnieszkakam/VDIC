@@ -168,7 +168,7 @@ virtual class base_tester extends uvm_component;
 
 		@(negedge bfm.clk) ;
 
-		repeat(500) begin   : tester_errors
+		repeat(1000) begin   : tester_errors
 			bfm.op_set = get_op();
 			bfm.A  = get_data();
 			bfm.B  = get_data();
