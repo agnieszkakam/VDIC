@@ -91,7 +91,7 @@ virtual class base_tester extends uvm_component;
 
 	protected task test_alu_processing_error (output logic [7:0] ctl, input processing_error_t Alu_error);
 		begin
-			automatic logic [31:0] A = 32'($urandom), B = 32'($urandom);
+			automatic logic [31:0] A = $urandom, B = $urandom;
 			operation_t  operation;
 			packet_t ALU_reponse_type;
 			logic [31:0] ALU_data;

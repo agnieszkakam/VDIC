@@ -174,10 +174,10 @@ class scoreboard extends uvm_component;
 				end
 		end
     endtask : run_phase
-/*
-	task display_test_result();
+
+	function void report_phase(uvm_phase phase);
 		$display("Test %s.",test_result);
-	endtask : display_test_result
-*/ //bring it back, use report phase
+	endfunction : report_phase
+
 
 endclass : scoreboard

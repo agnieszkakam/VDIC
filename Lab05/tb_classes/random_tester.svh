@@ -7,7 +7,7 @@ class random_tester extends base_tester;
     endfunction : new
 
     function logic [31:0] get_data();
-        return 32'($urandom);
+        return $urandom;	
     endfunction : get_data
 
 endclass : random_tester

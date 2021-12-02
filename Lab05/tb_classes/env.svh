@@ -6,7 +6,6 @@ class env extends uvm_env;
      * This is temporary solution -> sequencer/driver will not have this problem
      */
     base_tester tester_h;
-
     coverage coverage_h;
     scoreboard scoreboard_h;
 
