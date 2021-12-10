@@ -207,7 +207,7 @@ command_monitor command_monitor_h;
 
 always @(posedge clk) begin : op_monitor
     static bit in_command = 0;
-    alu_data_in_t alu_data_in;
+    alu_data_in_s alu_data_in;
     if (done) begin : start_high			//TODO change condition
         if (!in_command) begin : new_command
             alu_data_in.A  <= A;

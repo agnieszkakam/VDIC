@@ -2,8 +2,8 @@ virtual class base_tester extends uvm_component;
 
 `uvm_component_utils(base_tester)
 
-    uvm_put_port #(alu_data_s) alu_data_port;
-
+    uvm_put_port #(alu_data_in_s) alu_in_port;
+	
 	pure virtual function [31:0] get_data();
 
 	function operation_t get_op();
@@ -26,24 +26,24 @@ virtual class base_tester extends uvm_component;
     endfunction : new
 
     function void build_phase(uvm_phase phase);
-        alu_data_port = new("alu_data_port", this);
+        alu_in_port = new("alu_in_port", this);
     endfunction : build_phase
 
 	task run_phase(uvm_phase phase);
 
-        alu_data_s alu_data;
+        alu_data_in_s alu_data_in;
 
         phase.raise_objection(this);
-        alu_data.op_set = RST_OP;
-        alu_data_port.put(alu_data);
+        alu_data_in.op_set = RST_OP;
+        alu_in_port.put(alu_data_in);
 
 		repeat (5000) begin : tester_main
-			alu_data.op_set = ADD_OP;//get_op();
-            alu_data.A  = 32'b1;//get_data();
-            alu_data.B  = 32'b0;//get_data();
-            alu_data_port.put(alu_data);
+			alu_data_in.op_set = ADD_OP;//get_op();		//TODO replace!! nondynamic
+            alu_data_in.A  = 32'b1;//get_data();
+            alu_data_in.B  = 32'b0;//get_data();
+            alu_in_port.put(alu_data_in);
 
-			/*case (alu_data.op_set)
+			/*case (alu_data.op_set)				//TODO uncomment
 				RST_OP: begin : rst_op
 					bfm.reset_alu();
 				end
@@ -67,6 +67,7 @@ virtual class base_tester extends uvm_component;
 			bfm.error_state = 1'b0;
 		end
 */
+		#500;
         phase.drop_objection(this);
 
 	endtask : run_phase

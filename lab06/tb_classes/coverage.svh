@@ -1,12 +1,11 @@
-class coverage extends uvm_subscriber #(alu_data_s);
+class coverage extends uvm_subscriber #(alu_data_in_s);
 
     `uvm_component_utils(coverage)
-
-	virtual alu_bfm bfm;
 
 	protected bit [31:0] A;
 	protected bit [31:0] B;
 	protected operation_t op_set;
+	protected processing_error_t err_code;
 
 	// Covergroup checking the op codes and their sequences
 	covergroup op_cov;
@@ -51,7 +50,7 @@ class coverage extends uvm_subscriber #(alu_data_s);
 			bins ones  = {32'hFFFF_FFFF};
 		}
 
-		error_leg: coverpoint bfm.error_code    {
+		error_leg: coverpoint err_code    {
 			bins err_data = {ERR_DATA};
 			bins err_crc = {ERR_CRC};
 			bins err_op = {ERR_OP};
@@ -129,22 +128,18 @@ class coverage extends uvm_subscriber #(alu_data_s);
 
 	function new (string name, uvm_component parent);
         super.new(name, parent);
-        op_cov               = new();
+        op_cov       = new();
         data_corners = new();
     endfunction : new
 
-    function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1,"Failed to get BFM");
-    endfunction : build_phase
-
-    function void write (alu_data_s t);
+    function void write (alu_data_in_s t);
         forever begin : sampling_block
-            //@(posedge bfm.clk);
+            //@(posedge bfm.clk);				//TODO wait?
             A      = t.A;
             B      = t.B;
             op_set = t.op_set;
-			if (bfm.done || !bfm.rst_n) begin
+			err_code = t.error_code;
+			if (1/*bfm.done || !bfm.rst_n*/) begin		//TODO condition?
 				op_cov.sample();
 				data_corners.sample();
 			end

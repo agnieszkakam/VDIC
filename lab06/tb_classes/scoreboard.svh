@@ -191,7 +191,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 				$fatal(1, "Missing command in self checker");
 		while (/*(cmd.op == no_op) || */(cmd.op_set == RST_OP));
 
-		@(posedge bfm.clk) ;            // TODO delete?
+		//@(posedge bfm.clk) ;            // TODO delete?
 		case (bfm.error_state)
 			1'b0: begin
 

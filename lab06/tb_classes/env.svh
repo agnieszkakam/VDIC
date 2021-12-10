@@ -7,11 +7,16 @@ class env extends uvm_env;
 	 */
 	random_tester tester_h;
 	driver driver_h;
-	uvm_tlm_fifo #(alu_data_in_t) command_f;
+	uvm_tlm_fifo #(alu_data_in_s) command_f;
+	
 	coverage coverage_h;
 	scoreboard scoreboard_h;
 	command_monitor command_monitor_h;
 	result_monitor result_monitor_h;
+	
+	function new (string name, uvm_component parent);
+		super.new(name,parent);
+	endfunction : new
 
 	function void build_phase(uvm_phase phase);
 		command_f         = new("command_f", this);
@@ -24,15 +29,11 @@ class env extends uvm_env;
 	endfunction : build_phase
 
 	function void connect_phase(uvm_phase phase);
-		driver_h.alu_data_port.connect(command_f.get_export);
-		tester_h.alu_data_port.connect(command_f.put_export);
+		driver_h.alu_in_port.connect(command_f.get_export);
+		tester_h.alu_in_port.connect(command_f.put_export);
 		result_monitor_h.ap.connect(scoreboard_h.analysis_export);
 		command_monitor_h.ap.connect(scoreboard_h.command_f.analysis_export);
 		command_monitor_h.ap.connect(coverage_h.analysis_export);
 	endfunction : connect_phase
-
-	function new (string name, uvm_component parent);
-		super.new(name,parent);
-	endfunction : new
 
 endclass
