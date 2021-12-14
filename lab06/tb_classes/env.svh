@@ -33,7 +33,7 @@ class env extends uvm_env;
 		tester_h.alu_in_port.connect(command_f.put_export);
 		result_monitor_h.ap.connect(scoreboard_h.analysis_export);
 		command_monitor_h.ap.connect(scoreboard_h.command_f.analysis_export);
-		command_monitor_h.ap.connect(coverage_h.analysis_export);
+//		command_monitor_h.ap.connect(coverage_h.analysis_export);
 	endfunction : connect_phase
 
 endclass

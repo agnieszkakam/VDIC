@@ -101,15 +101,17 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		end
 	endfunction
 
-	protected task get_expected_error_packet (output logic [7:0] exp_error_packet, input processing_error_t error_type);
+	protected function get_expected_error_packet (input processing_error_t error_type);
 		begin
+			logic [7:0] exp_error_packet;
 			bit parity_bit;
 			automatic logic [5:0] err_flags = {2{error_type}};
 
 			parity_bit = generate_parity_bit({1'b1,err_flags});
 			exp_error_packet = {1'b1, err_flags, parity_bit};
+			return exp_error_packet;
 		end
-	endtask
+	endfunction
 
 	/*
 
@@ -192,7 +194,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		while (/*(cmd.op == no_op) || */(cmd.op_set == RST_OP));
 
 		//@(posedge bfm.clk) ;            // TODO delete?
-		case (bfm.error_state)
+		case (cmd.error_state)
 			1'b0: begin
 
 				exp_packet = get_expected_result(cmd.A, cmd.B, cmd.op_set);
@@ -225,18 +227,18 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 			end
 			1'b1: begin : CHK_ERR
 				
-				get_expected_error_packet(exp_error_response, cmd.error_code);
+				exp_error_response = get_expected_error_packet(cmd.error_code);
 				
-				assert(exp_error_response === bfm.error_response) begin
+				assert(exp_error_response === t.error_response) begin
 	 `ifdef DEBUG
 					$display("%0t Test passed for A=%08x B=%08x op_set=%s (%s)",
-						$time, A, B, op_set.name, error_code.name);
+						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name);
 	 `endif
 				end
 				else begin
 					$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (%s)\nexp: %08b  rcv: %08b",
-						$time, bfm.A, bfm.B, bfm.op_set.name, bfm.error_code.name,
-						exp_error_response, bfm.error_response);
+						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name,
+						exp_error_response, t.error_response);
 					test_result = "FAILED";
 				end;
 			end
@@ -245,7 +247,13 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 	endfunction : write
 
 	function void report_phase(uvm_phase phase);
-		$display("Test %s.",test_result);
+		$display("\n\t\t************************************************************\n\
+				  \t\t************************************************************\n\
+				  \t\t************************************************************\n\
+				  \t\t******************** Test %s.***********************\n\
+				  \t\t************************************************************\n\
+				  \t\t************************************************************\n\
+				  \t\t************************************************************\n",test_result);
 	endfunction : report_phase
 
 

@@ -1,0 +1,12 @@
+################################################################################
+#                    DO NOT MANUALLY EDIT THIS FILE!                           #
+################################################################################
+# This file contains the automatically generated build configuration (2021/10/14 15:46:48)
+# requested at line 3 in /home/student/akamien/VDIC/.dvt/default.build
+
+
+################ Verilog Auto-config Directives ################
+#-clean
+-F lab06/tb.f
+
+################ No files found. ################

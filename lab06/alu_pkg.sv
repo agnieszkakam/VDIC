@@ -28,8 +28,6 @@ package alu_pkg;
 		logic  [31:0]  rcv_data;
 		logic  [7:0]   rcv_control_packet, error_response;
 		bit done;
-		operation_t op_set;
-		processing_error_t error_code;
 	} alu_data_out_s;
 	
 	typedef struct packed {
@@ -39,14 +37,15 @@ package alu_pkg;
 		processing_error_t error_code;
 	} alu_data_in_s;
 	
-`include "coverage.svh"
-`include "base_tester.svh"
-`include "random_tester.svh"
-`include "corner_tester.svh"
-`include "scoreboard.svh"
-`include "driver.svh"
 `include "command_monitor.svh"
 `include "result_monitor.svh"
+`include "driver.svh"
+	
+`include "coverage.svh"
+`include "base_tester.svh"
+`include "scoreboard.svh"
+`include "random_tester.svh"
+`include "corner_tester.svh"
 
 `include "env.svh"
 

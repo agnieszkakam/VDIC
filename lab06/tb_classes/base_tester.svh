@@ -36,22 +36,14 @@ virtual class base_tester extends uvm_component;
         phase.raise_objection(this);
         alu_data_in.op_set = RST_OP;
         alu_in_port.put(alu_data_in);
-
-		repeat (5000) begin : tester_main
-			alu_data_in.op_set = ADD_OP;//get_op();		//TODO replace!! nondynamic
-            alu_data_in.A  = 32'b1;//get_data();
-            alu_data_in.B  = 32'b0;//get_data();
+		
+		repeat (50) begin : tester_main
+            alu_data_in.A  = get_data();
+            alu_data_in.B  = get_data();
+            alu_data_in.op_set = get_op();
+			alu_data_in.error_state = 1'b0;
+			alu_data_in.error_code = ERR_DATA;		//TODO REMOVE
             alu_in_port.put(alu_data_in);
-
-			/*case (alu_data.op_set)				//TODO uncomment
-				RST_OP: begin : rst_op
-					bfm.reset_alu();
-				end
-				default: begin : norm_op
-					//bfm.process_instruction(bfm.A, bfm.B, bfm.op_set);
-					bfm.process_ALU_response(bfm.rcv_data, bfm.rcv_control_packet);
-				end
-			endcase*/
 		end
 /*
 		@(negedge bfm.clk) ;

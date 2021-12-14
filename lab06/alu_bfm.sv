@@ -84,6 +84,7 @@ interface alu_bfm;
 	endtask : receive_packet
 
 	task set_done ();
+		@(negedge clk) ;
 		done = 1'b1;
 		@(negedge clk) ;
 		done = 1'b0;
@@ -107,24 +108,24 @@ interface alu_bfm;
 		end
 	endfunction
 
-	task process_instruction (input logic  [31:0] A, input logic  [31:0] B, input operation_t opcode);
+	task process_instruction (alu_data_in_s command);
 		begin
 			logic [3:0] crc;
 
 			for (int i = 3; i >= 0; i--) begin
-				send_packet(DATA, B [8*i +: 8]);
+				send_packet(DATA, command.B [8*i +: 8]);
 			end
 
 			for (int i = 3; i >= 0; i--) begin
-				send_packet(DATA, A [8*i +: 8]);
+				send_packet(DATA, command.A [8*i +: 8]);
 			end
 
-			crc = CRC4_D68({B, A, 1'b1, opcode}, 4'b0);
-			send_packet(CMD, {1'b0, opcode, crc});
+			crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
+			send_packet(CMD, {1'b0, command.op_set, crc});
 		end
 	endtask
 
-	task process_ALU_response (output logic  [31:0] data, logic [7:0] ctl);
+	task process_ALU_response (output alu_data_out_s alu_out);
 		begin
 			logic [39:0] maximum_response;
 			automatic logic [2:0] i = 3'd4;
@@ -136,18 +137,18 @@ interface alu_bfm;
 			end while (packet == DATA);
 
 			if (i == 3'b111) begin                      //i - roll over
-				data = maximum_response[39:8];
-				ctl = maximum_response[7:0];
+				alu_out.rcv_data = maximum_response[39:8];
+				alu_out.rcv_control_packet = maximum_response[7:0];
 			end
 			else begin
-				ctl = maximum_response[39:32];
+				alu_out.rcv_control_packet = maximum_response[39:32];
 			end
 		end
 
 		set_done();
 
 	endtask
-
+/*
 	task test_alu_processing_error (output logic [7:0] ctl, input processing_error_t Alu_error);
 		begin
 			automatic logic [31:0] A = $urandom, B = $urandom;
@@ -202,13 +203,13 @@ interface alu_bfm;
 
 		end
 	endtask
-
+*/
 command_monitor command_monitor_h;
 
 always @(posedge clk) begin : op_monitor
     static bit in_command = 0;
     alu_data_in_s alu_data_in;
-    if (done) begin : start_high			//TODO change condition
+    if (1) begin : start_high			//TODO change condition
         if (!in_command) begin : new_command
             alu_data_in.A  <= A;
             alu_data_in.B  <= B;
@@ -228,12 +229,13 @@ end : op_monitor
 end : rst_monitor*/
 
 result_monitor result_monitor_h;
+alu_data_out_s alu_out;
 
 initial begin : result_monitor_thread
     forever begin
         @(posedge clk) ;
         if (done)
-            result_monitor_h.write_to_monitor(rcv_data);
+            result_monitor_h.write_to_monitor(alu_out);
     end
 end : result_monitor_thread
 

@@ -139,10 +139,10 @@ class coverage extends uvm_subscriber #(alu_data_in_s);
             B      = t.B;
             op_set = t.op_set;
 			err_code = t.error_code;
-			if (1/*bfm.done || !bfm.rst_n*/) begin		//TODO condition?
+			//if (bfm.done || !bfm.rst_n) begin		//TODO condition?
 				op_cov.sample();
 				data_corners.sample();
-			end
+			//end
         end : sampling_block
     endfunction : write
 

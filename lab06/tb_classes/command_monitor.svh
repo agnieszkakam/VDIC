@@ -18,8 +18,9 @@ class command_monitor extends uvm_component;
     endfunction : build_phase
 
     function void write_to_monitor(alu_data_in_s cmd);
-        $display("COMMAND MONITOR: A:0x%2h B:0x%2h op: %s", cmd.A, cmd.B, cmd.op_set.name());
+//        $display("COMMAND MONITOR: A:%8h B:%8h op: %s", cmd.A, cmd.B, cmd.op_set.name());
         ap.write(cmd);
+//	    $display("COMMAND MONITOR: done");
     endfunction : write_to_monitor
 
 endclass : command_monitor
