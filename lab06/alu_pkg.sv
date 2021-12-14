@@ -27,7 +27,7 @@ package alu_pkg;
 	typedef struct packed {
 		logic  [31:0]  rcv_data;
 		logic  [7:0]   rcv_control_packet, error_response;
-		bit done;
+		//bit done;
 	} alu_data_out_s;
 	
 	typedef struct packed {

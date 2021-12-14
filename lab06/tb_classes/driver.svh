@@ -16,23 +16,21 @@ class driver extends uvm_component;
 
 	task run_phase(uvm_phase phase);
 		alu_data_in_s alu_data_in;
-		//logic [31:0] result_data;
-		//logic [7:0] result_ctl;
 
 		forever begin : command_loop
 			#1400;
 			$display("DRIVER: waiting for cmd");
 			alu_in_port.get(alu_data_in);
-			$display("DRIVER: cmd received: %h, %h, %s",alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name());
-			
+			$display("DRIVER: cmd received: A=%h, B=%h, %s", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name());
 			case (alu_data_in.op_set)              
 				RST_OP: begin : rst_op
 					bfm.reset_alu();
-					$display("DRIVER: reset");
 				end
 				default: begin : norm_op
-					bfm.process_instruction(alu_data_in);
-					$display("DRIVER: process instructions");
+					if (alu_data_in.error_state)
+						bfm.test_alu_processing_error(alu_data_in);
+					else
+						bfm.process_instruction(alu_data_in);
 				end
 			endcase
 						

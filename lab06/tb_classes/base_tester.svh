@@ -37,26 +37,25 @@ virtual class base_tester extends uvm_component;
         alu_data_in.op_set = RST_OP;
         alu_in_port.put(alu_data_in);
 		
-		repeat (50) begin : tester_main
+		$display("&&&&&&&&& BASIC TESTER &&&&&&&&&");
+		repeat (5000) begin : tester_main
             alu_data_in.A  = get_data();
             alu_data_in.B  = get_data();
             alu_data_in.op_set = get_op();
 			alu_data_in.error_state = 1'b0;
-			alu_data_in.error_code = ERR_DATA;		//TODO REMOVE
             alu_in_port.put(alu_data_in);
 		end
+
+		$display("&&&&&&&&& ERROR TESTER &&&&&&&&&");
+		//@(negedge bfm.clk) ;
 /*
-		@(negedge bfm.clk) ;
-
-		repeat(1000) begin   : tester_errors
-			bfm.op_set = get_op();
-			bfm.A  = get_data();
-			bfm.B  = get_data();
-
-			bfm.error_state = 1'b1;
-			get_error_code(bfm.error_code);
-			bfm.test_alu_processing_error(bfm.error_response, bfm.error_code);
-			bfm.error_state = 1'b0;
+		repeat(5) begin   : tester_errors
+            alu_data_in.A  = get_data();
+            alu_data_in.B  = get_data();
+            alu_data_in.op_set = get_op();
+			alu_data_in.error_state = 1'b1;
+			get_error_code(alu_data_in.error_code);
+            alu_in_port.put(alu_data_in);
 		end
 */
 		#500;
