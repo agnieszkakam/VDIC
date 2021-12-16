@@ -1,9 +1,7 @@
 virtual class base_tester extends uvm_component;
 
-`uvm_component_utils(base_tester)
+	uvm_put_port #(alu_data_in_s) alu_in_port;
 
-    uvm_put_port #(alu_data_in_s) alu_in_port;
-	
 	pure virtual function [31:0] get_data();
 
 	function operation_t get_op();
@@ -21,46 +19,45 @@ virtual class base_tester extends uvm_component;
 		end
 	endtask
 
-    function new (string name, uvm_component parent);
-        super.new(name, parent);
-    endfunction : new
+	function new (string name, uvm_component parent);
+		super.new(name, parent);
+	endfunction : new
 
-    function void build_phase(uvm_phase phase);
-        alu_in_port = new("alu_in_port", this);
-    endfunction : build_phase
+	function void build_phase(uvm_phase phase);
+		alu_in_port = new("alu_in_port", this);
+	endfunction : build_phase
 
 	task run_phase(uvm_phase phase);
 
-        alu_data_in_s alu_data_in;
+		alu_data_in_s alu_data_in;
 
-        phase.raise_objection(this);
-        alu_data_in.op_set = RST_OP;
-        alu_in_port.put(alu_data_in);
-		
+		phase.raise_objection(this);
+		alu_data_in.op_set = RST_OP;
+		alu_in_port.put(alu_data_in);
+
 		$display("&&&&&&&&& BASIC TESTER &&&&&&&&&");
-		repeat (5000) begin : tester_main
-            alu_data_in.A  = get_data();
-            alu_data_in.B  = get_data();
-            alu_data_in.op_set = get_op();
+		repeat (4) begin : tester_main
+			alu_data_in.A  = get_data();
+			alu_data_in.B  = get_data();
+			alu_data_in.op_set = get_op();
 			alu_data_in.error_state = 1'b0;
-            alu_in_port.put(alu_data_in);
+			alu_in_port.put(alu_data_in);
 		end
 
 		$display("&&&&&&&&& ERROR TESTER &&&&&&&&&");
-		//@(negedge bfm.clk) ;
-/*
-		repeat(5) begin   : tester_errors
-            alu_data_in.A  = get_data();
-            alu_data_in.B  = get_data();
-            alu_data_in.op_set = get_op();
+
+		repeat(4) begin   : tester_errors
+			alu_data_in.A  = get_data();
+			alu_data_in.B  = get_data();
 			alu_data_in.error_state = 1'b1;
 			get_error_code(alu_data_in.error_code);
-            alu_in_port.put(alu_data_in);
+			alu_data_in.op_set = (alu_data_in.error_code == ERR_OP) ? INVALID_OP : get_op();
+			alu_in_port.put(alu_data_in);
 		end
-*/
-		#500;
-        phase.drop_objection(this);
+
+		#5000;
+		phase.drop_objection(this);
 
 	endtask : run_phase
-	
+
 endclass

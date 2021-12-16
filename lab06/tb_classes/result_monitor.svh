@@ -21,9 +21,3 @@ class result_monitor extends uvm_component;
     endfunction : new
 
 endclass : result_monitor
-
-
-
-
-
-

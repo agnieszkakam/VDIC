@@ -1,6 +1,6 @@
 class coverage extends uvm_subscriber #(alu_data_in_s);
 
-    `uvm_component_utils(coverage)
+	`uvm_component_utils(coverage)
 
 	protected bit [31:0] A;
 	protected bit [31:0] B;
@@ -127,23 +127,18 @@ class coverage extends uvm_subscriber #(alu_data_in_s);
 	endgroup
 
 	function new (string name, uvm_component parent);
-        super.new(name, parent);
-        op_cov       = new();
-        data_corners = new();
-    endfunction : new
+		super.new(name, parent);
+		op_cov       = new();
+		data_corners = new();
+	endfunction : new
 
-    function void write (alu_data_in_s t);
-        forever begin : sampling_block
-            //@(posedge bfm.clk);				//TODO wait?
-            A      = t.A;
-            B      = t.B;
-            op_set = t.op_set;
-			err_code = t.error_code;
-			//if (bfm.done || !bfm.rst_n) begin		//TODO condition? signals unavailable
-				op_cov.sample();
-				data_corners.sample();
-			//end
-        end : sampling_block
-    endfunction : write
+	function void write (alu_data_in_s t);
+		A      = t.A;
+		B      = t.B;
+		op_set = t.op_set;
+		err_code = t.error_code;
+		op_cov.sample();
+		data_corners.sample();
+	endfunction : write
 
 endclass    : coverage

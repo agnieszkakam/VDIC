@@ -1,6 +1,7 @@
 interface alu_bfm;
 	import alu_pkg::*;
 
+
 	/**
 	 * Signals
 	 */
@@ -12,7 +13,8 @@ interface alu_bfm;
 	bit done, error_state;
 	operation_t op_set;
 	processing_error_t error_code;
-	
+	alu_data_out_s alu_out;
+
 
 	/**
 	 * Local parameters
@@ -33,7 +35,7 @@ interface alu_bfm;
 			clk = ~clk;
 		end
 	end
-	
+
 
 	/**
 	 * Tasks and functions
@@ -41,9 +43,9 @@ interface alu_bfm;
 
 	task reset_alu();
 
-		  //`ifdef DEBUG
+		//`ifdef DEBUG
 		$display("*** ALU RESET ***");
-		   //`endif			//todo delete comments, leave ifdef
+		//`endif         //todo delete comments, leave ifdef
 
 		@(negedge clk) ;
 		rst_n = 1'b0;
@@ -111,6 +113,8 @@ interface alu_bfm;
 	task process_instruction (input alu_data_in_s command);
 		begin
 			logic [3:0] crc;
+			alu_data_out_s alu_data_out;
+
 			A = command.A;
 			B = command.B;
 			op_set = command.op_set;
@@ -126,10 +130,13 @@ interface alu_bfm;
 
 			crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
 			send_packet(CMD, {1'b0, command.op_set, crc});
+			
+			//process_ALU_response(alu_data_out);
+			//alu_out = alu_data_out;
 		end
 	endtask
 
-	task process_ALU_response (output alu_data_out_s alu_out);
+	task process_ALU_response (output alu_data_out_s alu_data_out);
 		begin
 			logic [39:0] maximum_response;
 			automatic logic [2:0] i = 3'd4;
@@ -141,28 +148,27 @@ interface alu_bfm;
 			end while (packet == DATA);
 
 			if (i == 3'b111) begin                      //i - roll over
-				alu_out.rcv_data = maximum_response[39:8];
-				alu_out.rcv_control_packet = maximum_response[7:0];
+				alu_data_out.rcv_data = maximum_response[39:8];
+				alu_data_out.rcv_control_packet = maximum_response[7:0];
 			end
 			else begin
-				alu_out.rcv_control_packet = maximum_response[39:32];
+				alu_data_out.rcv_control_packet = maximum_response[39:32];
 			end
 		end
-
+		alu_out = alu_data_out;
 		set_done();
 
 	endtask
 
-	task test_alu_processing_error (input alu_data_in_s alu_in);
+	task test_alu_processing_error (/*output alu_data_out_s alu_out,*/ input alu_data_in_s alu_in);
 		begin
-			packet_type_t 	ALU_reponse_type;
-			logic [31:0] 	ALU_data;
-			logic [5:0] 	err_flags;
-			logic [3:0] 	crc;
-			logic [2:0] 	nr_of_packets;
-			bit 			parity_bit;
-			alu_data_out_s 	alu_out;
-			
+			packet_type_t   ALU_reponse_type;
+			logic [31:0]    ALU_data;
+			logic [5:0]     err_flags;
+			logic [3:0]     crc;
+			logic [2:0]     nr_of_packets;
+			bit             parity_bit;
+
 			case(alu_in.error_code)
 				ERR_DATA:
 				begin
@@ -181,7 +187,7 @@ interface alu_bfm;
 
 				ERR_OP:
 				begin
-					alu_in.op_set = operation_t'(3'($urandom_range(7,6)));
+					alu_in.op_set = INVALID_OP;
 					process_instruction(alu_in);
 				end
 
@@ -196,51 +202,51 @@ interface alu_bfm;
 
 					crc = CRC4_D68({alu_in.B, alu_in.A, 1'b1, alu_in.op_set}, 4'b0);
 					send_packet(CMD, {1'b0, alu_in.op_set, ~crc});
+
 				end
 			endcase
-
 			process_ALU_response(alu_out);
 			alu_out.error_response = alu_out.rcv_control_packet;
-
 		end
 	endtask
 
-command_monitor command_monitor_h;
+	command_monitor command_monitor_h;
 
-always @(posedge clk) begin : op_monitor
-    static bit in_command = 0;
-    alu_data_in_s alu_data_in;
-    if (done /*&& command_monitor_h != null*/) begin : start_high			
+	always @(posedge clk) begin : op_monitor
+		static bit in_command = 0;
+		alu_data_in_s alu_data_in;
+		if (done /*&& command_monitor_h != null*/) begin : start_high
 //        if (!in_command) begin : new_command
-            alu_data_in.A  <= A;
-            alu_data_in.B  <= B;
-            alu_data_in.op_set <= op_set;
-//	    	alu_data_in.error_state <= error_state;
-//    		alu_data_in.error_code <= error_code;
-            command_monitor_h.write_to_monitor(alu_data_in);
-	    $display("OP_MONITOR TO CMD_MONITOR: %h, %h, %s", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name());
+			alu_data_in.A  = A;
+			alu_data_in.B  = B;
+			alu_data_in.op_set = op_set;
+			alu_data_in.error_state = error_state;
+			alu_data_in.error_code = error_code;
+			command_monitor_h.write_to_monitor(alu_data_in);
+			$display("OP_MONITOR TO CMD_MONITOR: %h, %h, %s, ERR=%d(%s)", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name(), alu_data_in.error_state, alu_data_in.error_code.name() );
 //        end : new_command
-    end : start_high
+		end : start_high
 //    else // start low
 //        in_command = 0;
-end : op_monitor
+	end : op_monitor
 
-always @(negedge rst_n) begin : rst_monitor
-    alu_data_in_s alu_data;
-    alu_data.op_set <= RST_OP;
-    if (command_monitor_h != null) //guard against VCS time 0 negedge
-        command_monitor_h.write_to_monitor(alu_data);
-end : rst_monitor
+	always @(negedge rst_n) begin : rst_monitor
+		alu_data_in_s alu_data;
+		alu_data.op_set = RST_OP;
+		if (command_monitor_h != null) //guard against VCS time 0 negedge
+			command_monitor_h.write_to_monitor(alu_data);
+	end : rst_monitor
 
-result_monitor result_monitor_h;
-alu_data_out_s alu_out;
+	result_monitor result_monitor_h;
 
-initial begin : result_monitor_thread
-    forever begin
-        @(posedge clk) ;
-        if (done)
-            result_monitor_h.write_to_monitor(alu_out);
-    end
-end : result_monitor_thread
+	initial begin : result_monitor_thread
+		forever begin
+			@(posedge clk) ;
+			if (done) begin
+				result_monitor_h.write_to_monitor(alu_out);
+				$display("RESULT_MONITOR_THREAD: %h, %h, %h", alu_out.rcv_data, alu_out.rcv_control_packet, alu_out.error_response);
+			end
+		end
+	end : result_monitor_thread
 
 endinterface : alu_bfm

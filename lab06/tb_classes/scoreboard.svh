@@ -101,77 +101,19 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		end
 	endfunction
 
-	protected function get_expected_error_packet (input processing_error_t error_type);
+	protected function logic [7:0] get_expected_error_packet (input processing_error_t error_type);
 		begin
 			logic [7:0] exp_error_packet;
 			bit parity_bit;
 			automatic logic [5:0] err_flags = {2{error_type}};
+			$display("err_type=%3b(%s)",error_type, error_type.name() );
 
 			parity_bit = generate_parity_bit({1'b1,err_flags});
 			exp_error_packet = {1'b1, err_flags, parity_bit};
+			$display("exp_error_packet (func)=%8b",exp_error_packet);
 			return exp_error_packet;
 		end
 	endfunction
-
-	/*
-
-	 task run_phase(uvm_phase phase);
-	 forever begin : scoreboard
-	 logic [31:0] expected_data;
-	 logic [7:0]  expected_ctl_packet, exp_error_response;
-	 @(posedge bfm.done)
-	 if(!bfm.rst_n) begin : verify_result
-
-	 get_expected_result(expected_data, expected_ctl_packet, bfm.A, bfm.B, bfm.op_set);
-	 get_expected_error_packet(exp_error_response, bfm.error_code);
-
-	 @(posedge bfm.clk) ;
-	 case (bfm.error_state)
-	 1'b0: begin
-	 assert(bfm.rcv_data === expected_data) begin : CHK_RESULT
-	 `ifdef DEBUG
-	 $display("%0t Test passed for A=%08x B=%08x op_set=%s (data)",
-	 $time, A, B, op_set.name);
-	 `endif
-	 end
-	 else begin
-	 $warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (data)\nexp: %08x  rcv: %08x",
-	 $time, bfm.A, bfm.B, bfm.op_set.name, expected_data, bfm.rcv_data);
-	 test_result = "FAILED";
-	 end;
-
-	 assert(bfm.rcv_control_packet === expected_ctl_packet) begin : CHK_CTL
-	 `ifdef DEBUG
-	 $display("%0t Test passed for A=%08x B=%08x op_set=%s (ctl)",
-	 $time, A, B, op_set.name);
-	 `endif
-	 end
-	 else begin
-	 $warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (ctl)\nexp: %08x  rcv: %08x",
-	 $time, bfm.A, bfm.B, bfm.op_set.name, expected_ctl_packet,
-	 bfm.rcv_control_packet);
-	 test_result = "FAILED";
-	 end;
-	 end
-
-	 1'b1: begin : CHK_ERR
-	 assert(exp_error_response === bfm.error_response) begin
-	 `ifdef DEBUG
-	 $display("%0t Test passed for A=%08x B=%08x op_set=%s (%s)",
-	 $time, A, B, op_set.name, error_code.name);
-	 `endif
-	 endget_expected_error_packet(exp_error_response, bfm.error_code);
-	 else begin
-	 $warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (%s)\nexp: %08b  rcv: %08b",
-	 $time, bfm.A, bfm.B, bfm.op_set.name, bfm.error_code.name,
-	 exp_error_response, bfm.error_response);
-	 test_result = "FAILED";
-	 end;
-	 end
-	 endcase
-	 end
-	 end
-	 endtask : run_phase*/
 
 	function new (string name, uvm_component parent);
 		super.new(name, parent);
@@ -184,18 +126,17 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 	function void write(alu_data_out_s t);
 		logic [39:0] exp_packet;
 		logic [31:0] exp_result;
-		logic [7:0] exp_ctl, exp_error_response;
+		logic [7:0] exp_ctl;
 
 		alu_data_in_s cmd;
 
 		do
 			if (!command_f.try_get(cmd))
 				$fatal(1, "Missing command in self checker");
-		while (/*(cmd.op == no_op) || */(cmd.op_set == RST_OP));
+		while (cmd.op_set == RST_OP);
 
-		//@(posedge bfm.clk) ;            // TODO delete?
 		case (cmd.error_state)
-			1'b0: begin
+			1'b0: begin		: CHK_NOMINAL
 
 				exp_packet = get_expected_result(cmd.A, cmd.B, cmd.op_set);
 				exp_result = exp_packet [39:8];
@@ -226,10 +167,11 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 				end;
 			end
 			1'b1: begin : CHK_ERR
-				
-				exp_error_response = get_expected_error_packet(cmd.error_code);
-				
-				assert(exp_error_response === t.error_response) begin
+
+				exp_ctl = get_expected_error_packet(cmd.error_code);
+				$display("exp_error_packet(scorebrd)=%8b",exp_ctl);
+
+				assert(exp_ctl === t.error_response) begin
 	 `ifdef DEBUG
 					$display("%0t Test passed for A=%08x B=%08x op_set=%s (%s)",
 						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name);
@@ -238,7 +180,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 				else begin
 					$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (%s)\nexp: %08b  rcv: %08b",
 						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name,
-						exp_error_response, t.error_response);
+						exp_ctl, t.error_response);
 					test_result = "FAILED";
 				end;
 			end
