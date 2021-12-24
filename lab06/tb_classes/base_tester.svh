@@ -8,7 +8,7 @@ virtual class base_tester extends uvm_component;
 		automatic bit [2:0] op_choice = $random;
 		case (op_choice)
 			3'b000, 3'b001, 3'b100, 3'b101, 3'b110 : return operation_t'(op_choice);
-			default: return INVALID_OP;
+			default: return AND_OP;
 		endcase // case (op_choice)
 	endfunction : get_op
 
@@ -36,7 +36,7 @@ virtual class base_tester extends uvm_component;
 		alu_in_port.put(alu_data_in);
 
 		$display("&&&&&&&&& BASIC TESTER &&&&&&&&&");
-		repeat (4) begin : tester_main
+		repeat (4000) begin : tester_main
 			alu_data_in.A  = get_data();
 			alu_data_in.B  = get_data();
 			alu_data_in.op_set = get_op();
@@ -45,8 +45,8 @@ virtual class base_tester extends uvm_component;
 		end
 
 		$display("&&&&&&&&& ERROR TESTER &&&&&&&&&");
-
-		repeat(4) begin   : tester_errors
+				
+		repeat(4000) begin   : tester_errors
 			alu_data_in.A  = get_data();
 			alu_data_in.B  = get_data();
 			alu_data_in.error_state = 1'b1;

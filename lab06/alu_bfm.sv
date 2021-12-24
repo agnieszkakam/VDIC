@@ -8,8 +8,7 @@ interface alu_bfm;
 
 	bit clk, rst_n = 1'b1, sin, sout;
 
-	logic  [31:0]  A, B, rcv_data;
-	logic  [7:0]   rcv_control_packet, error_response;
+	logic  [31:0]  A, B;
 	bit done, error_state;
 	operation_t op_set;
 	processing_error_t error_code;
@@ -43,9 +42,9 @@ interface alu_bfm;
 
 	task reset_alu();
 
-		//`ifdef DEBUG
+		`ifdef DEBUG
 		$display("*** ALU RESET ***");
-		//`endif         //todo delete comments, leave ifdef
+		`endif
 
 		@(negedge clk) ;
 		rst_n = 1'b0;
@@ -113,6 +112,7 @@ interface alu_bfm;
 	task process_instruction (input alu_data_in_s command);
 		begin
 			logic [3:0] crc;
+			logic [2:0]     nr_of_packets;
 			alu_data_out_s alu_data_out;
 
 			A = command.A;
@@ -121,26 +121,70 @@ interface alu_bfm;
 			error_code = command.error_code;
 			error_state = command.error_state;
 
-			for (int i = 3; i >= 0; i--) begin
-				send_packet(DATA, command.B [8*i +: 8]);
+			if((!command.error_state) || (command.error_state && command.error_code == ERR_OP)) begin
+
+				for (int i = 3; i >= 0; i--) begin
+					send_packet(DATA, command.B [8*i +: 8]);
+				end
+				for (int i = 3; i >= 0; i--) begin
+					send_packet(DATA, command.A [8*i +: 8]);
+				end
+
+				crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
+				send_packet(CMD, {1'b0, command.op_set, crc});
+
 			end
-			for (int i = 3; i >= 0; i--) begin
-				send_packet(DATA, command.A [8*i +: 8]);
+			else begin
+				case(command.error_code)
+					ERR_DATA:
+					begin
+						nr_of_packets = 2'($urandom_range(3,0));
+
+						for (int i = nr_of_packets; i >= 0; i--) begin
+							send_packet(DATA, command.B [8*i +: 8]);
+						end
+						nr_of_packets = 2'($urandom_range(2,0));
+						for (int i = nr_of_packets; i >= 0; i--) begin
+							send_packet(DATA, command.A [8*i +: 8]);
+						end
+						crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
+						send_packet(CMD, {1'b0, op_set, crc});
+					end
+
+					/*ERR_OP:
+					 begin
+					 command.op_set = INVALID_OP;
+					 process_instruction(command);
+					 end*/
+
+					ERR_CRC:
+					begin
+						for (int i = 3; i >= 0; i--) begin
+							send_packet(DATA, command.B [8*i +: 8]);
+						end
+						for (int i = 3; i >= 0; i--) begin
+							send_packet(DATA, command.A [8*i +: 8]);
+						end
+
+						crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
+						send_packet(CMD, {1'b0, command.op_set, ~crc});
+					end
+				endcase
 			end
 
-			crc = CRC4_D68({command.B, command.A, 1'b1, command.op_set}, 4'b0);
-			send_packet(CMD, {1'b0, command.op_set, crc});
-			
-			//process_ALU_response(alu_data_out);
-			//alu_out = alu_data_out;
+			process_ALU_response(alu_data_out);
+			$display("process_instruction CALL: A=%08x, B=%08x, OP=%s", command.A, command.B, command.op_set.name());
+
+		//alu_out = alu_data_out;       //moved to process_ALU_response
 		end
 	endtask
 
 	task process_ALU_response (output alu_data_out_s alu_data_out);
 		begin
 			logic [39:0] maximum_response;
-			automatic logic [2:0] i = 3'd4;
 			packet_type_t packet;
+			alu_data_out_s alu_data_out;
+			automatic logic [2:0] i = 3'd4;
 
 			do begin
 				receive_packet(maximum_response [8*i +: 8], packet);
@@ -154,69 +198,70 @@ interface alu_bfm;
 			else begin
 				alu_data_out.rcv_control_packet = maximum_response[39:32];
 			end
-		end
-		alu_out = alu_data_out;
-		set_done();
 
-	endtask
-
-	task test_alu_processing_error (/*output alu_data_out_s alu_out,*/ input alu_data_in_s alu_in);
-		begin
-			packet_type_t   ALU_reponse_type;
-			logic [31:0]    ALU_data;
-			logic [5:0]     err_flags;
-			logic [3:0]     crc;
-			logic [2:0]     nr_of_packets;
-			bit             parity_bit;
-
-			case(alu_in.error_code)
-				ERR_DATA:
-				begin
-					nr_of_packets = 2'($urandom_range(3,0));
-
-					for (int i = nr_of_packets; i >= 0; i--) begin
-						send_packet(DATA, alu_in.B [8*i +: 8]);
-					end
-					nr_of_packets = 2'($urandom_range(2,0));
-					for (int i = nr_of_packets; i >= 0; i--) begin
-						send_packet(DATA, alu_in.A [8*i +: 8]);
-					end
-					crc = CRC4_D68({alu_in.B, alu_in.A, 1'b1, alu_in.op_set}, 4'b0);
-					send_packet(CMD, {1'b0, op_set, crc});
-				end
-
-				ERR_OP:
-				begin
-					alu_in.op_set = INVALID_OP;
-					process_instruction(alu_in);
-				end
-
-				ERR_CRC:
-				begin
-					for (int i = 3; i >= 0; i--) begin
-						send_packet(DATA, alu_in.B [8*i +: 8]);
-					end
-					for (int i = 3; i >= 0; i--) begin
-						send_packet(DATA, alu_in.A [8*i +: 8]);
-					end
-
-					crc = CRC4_D68({alu_in.B, alu_in.A, 1'b1, alu_in.op_set}, 4'b0);
-					send_packet(CMD, {1'b0, alu_in.op_set, ~crc});
-
-				end
-			endcase
-			process_ALU_response(alu_out);
+			alu_out = alu_data_out;         //assign to global bfm variable
 			alu_out.error_response = alu_out.rcv_control_packet;
+			$display("process_ALU_response CALL: local_alu_out(data)={%08x,%02x}; global_alu_out={%08x,%02x}", alu_data_out.rcv_data, alu_data_out.rcv_control_packet, alu_out.rcv_data, alu_out.rcv_control_packet);
+			set_done();
 		end
 	endtask
+	/*
+	 task test_alu_processing_error (input alu_data_in_s alu_in);
+	 begin
+	 packet_type_t   ALU_reponse_type;
+	 logic [31:0]    ALU_data;
+	 logic [5:0]     err_flags;
+	 logic [3:0]     crc;
+	 logic [2:0]     nr_of_packets;
+	 bit             parity_bit;
 
+	 $display("test_processing_error CALL: A=%08x, B=%08x, ERR=%s", alu_in.A, alu_in.B, alu_in.error_code.name());
+
+	 case(alu_in.error_code)
+	 ERR_DATA:
+	 begin
+	 nr_of_packets = 2'($urandom_range(3,0));
+
+	 for (int i = nr_of_packets; i >= 0; i--) begin
+	 send_packet(DATA, alu_in.B [8*i +: 8]);
+	 end
+	 nr_of_packets = 2'($urandom_range(2,0));
+	 for (int i = nr_of_packets; i >= 0; i--) begin
+	 send_packet(DATA, alu_in.A [8*i +: 8]);
+	 end
+	 crc = CRC4_D68({alu_in.B, alu_in.A, 1'b1, alu_in.op_set}, 4'b0);
+	 send_packet(CMD, {1'b0, op_set, crc});
+	 process_ALU_response();
+	 end
+
+	 ERR_OP:
+	 begin
+	 alu_in.op_set = INVALID_OP;
+	 process_instruction(alu_in);
+	 end
+
+	 ERR_CRC:
+	 begin
+	 for (int i = 3; i >= 0; i--) begin
+	 send_packet(DATA, alu_in.B [8*i +: 8]);
+	 end
+	 for (int i = 3; i >= 0; i--) begin
+	 send_packet(DATA, alu_in.A [8*i +: 8]);
+	 end
+
+	 crc = CRC4_D68({alu_in.B, alu_in.A, 1'b1, alu_in.op_set}, 4'b0);
+	 send_packet(CMD, {1'b0, alu_in.op_set, ~crc});
+	 process_ALU_response();
+	 end
+	 endcase
+	 end
+	 endtask
+	 */
 	command_monitor command_monitor_h;
 
 	always @(posedge clk) begin : op_monitor
-		static bit in_command = 0;
 		alu_data_in_s alu_data_in;
-		if (done /*&& command_monitor_h != null*/) begin : start_high
-//        if (!in_command) begin : new_command
+		if (done) begin : start_high
 			alu_data_in.A  = A;
 			alu_data_in.B  = B;
 			alu_data_in.op_set = op_set;
@@ -224,10 +269,7 @@ interface alu_bfm;
 			alu_data_in.error_code = error_code;
 			command_monitor_h.write_to_monitor(alu_data_in);
 			$display("OP_MONITOR TO CMD_MONITOR: %h, %h, %s, ERR=%d(%s)", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name(), alu_data_in.error_state, alu_data_in.error_code.name() );
-//        end : new_command
 		end : start_high
-//    else // start low
-//        in_command = 0;
 	end : op_monitor
 
 	always @(negedge rst_n) begin : rst_monitor
@@ -244,7 +286,7 @@ interface alu_bfm;
 			@(posedge clk) ;
 			if (done) begin
 				result_monitor_h.write_to_monitor(alu_out);
-				$display("RESULT_MONITOR_THREAD: %h, %h, %h", alu_out.rcv_data, alu_out.rcv_control_packet, alu_out.error_response);
+				$display("RESULT_MONITOR_THREAD: %8h, %2h, %2h", alu_out.rcv_data, alu_out.rcv_control_packet, alu_out.error_response);
 			end
 		end
 	end : result_monitor_thread

@@ -16,7 +16,7 @@
 
 #------------------------------------------------------------------------------
 # The list of tests; in GUI mode only the first test is started.
-TESTS=(corner_test random_test);
+TESTS=(random_test corner_test);
 #------------------------------------------------------------------------------
 # Default .f file
 FFILE="tb.f"

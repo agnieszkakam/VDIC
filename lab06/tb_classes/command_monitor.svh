@@ -20,7 +20,6 @@ class command_monitor extends uvm_component;
 	function void write_to_monitor(alu_data_in_s cmd);
 		$display("COMMAND MONITOR: A:%8h B:%8h op: %s, ERR=%d(%s)", cmd.A, cmd.B, cmd.op_set.name(), cmd.error_state, cmd.error_code.name() );
 		ap.write(cmd);
-		$display("COMMAND MONITOR: done");
 	endfunction : write_to_monitor
 
 endclass : command_monitor

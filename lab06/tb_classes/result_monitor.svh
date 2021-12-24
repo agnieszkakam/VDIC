@@ -4,7 +4,7 @@ class result_monitor extends uvm_component;
     uvm_analysis_port #(alu_data_out_s) ap;
 
     function void write_to_monitor(alu_data_out_s r);
-        $display("RESULT MONITOR: res=%h", r.rcv_data);
+        $display("RESULT MONITOR: res=%08x, ctl=%02x, err=%02x", r.rcv_data, r.rcv_control_packet, r.error_response);
         ap.write(r);
     endfunction : write_to_monitor
 

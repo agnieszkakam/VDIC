@@ -52,7 +52,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		end
 	endfunction
 
-	protected function get_expected_result (input bit  [31:0] A, bit  [31:0] B, operation_t op_set);
+	protected function logic [39:0] get_expected_result (input bit  [31:0] A, bit  [31:0] B, operation_t op_set);
 		begin
 			logic  [32:0] result_data_33b;
 			logic  [39:0] result_packet;
@@ -106,11 +106,9 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 			logic [7:0] exp_error_packet;
 			bit parity_bit;
 			automatic logic [5:0] err_flags = {2{error_type}};
-			$display("err_type=%3b(%s)",error_type, error_type.name() );
 
 			parity_bit = generate_parity_bit({1'b1,err_flags});
 			exp_error_packet = {1'b1, err_flags, parity_bit};
-			$display("exp_error_packet (func)=%8b",exp_error_packet);
 			return exp_error_packet;
 		end
 	endfunction
@@ -139,6 +137,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 			1'b0: begin		: CHK_NOMINAL
 
 				exp_packet = get_expected_result(cmd.A, cmd.B, cmd.op_set);
+				$display("expected_result:%x", exp_packet);
 				exp_result = exp_packet [39:8];
 				exp_ctl = exp_packet [7:0];
 
@@ -161,7 +160,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		   `endif
 				end
 				else begin
-					$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (ctl)\nexp: %08x  rcv: %08x",
+					$warning("%0t Test FAILED for A=%02x B=%02x op_set=%s (ctl)\nexp: %08x  rcv: %08x",
 						$time, cmd.A, cmd.B, cmd.op_set.name, exp_ctl, t.rcv_control_packet);
 					test_result = "FAILED";
 				end;
@@ -169,7 +168,6 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 			1'b1: begin : CHK_ERR
 
 				exp_ctl = get_expected_error_packet(cmd.error_code);
-				$display("exp_error_packet(scorebrd)=%8b",exp_ctl);
 
 				assert(exp_ctl === t.error_response) begin
 	 `ifdef DEBUG
