@@ -4,13 +4,13 @@ virtual class base_tester extends uvm_component;
 
 	pure virtual function [31:0] get_data();
 
-	function operation_t get_op();
+	function operation_t get_valid_op();
 		automatic bit [2:0] op_choice = $random;
 		case (op_choice)
 			3'b000, 3'b001, 3'b100, 3'b101, 3'b110 : return operation_t'(op_choice);
 			default: return AND_OP;
 		endcase // case (op_choice)
-	endfunction : get_op
+	endfunction : get_valid_op
 
 	protected task get_error_code (output processing_error_t error_code);
 		begin
@@ -35,23 +35,20 @@ virtual class base_tester extends uvm_component;
 		alu_data_in.op_set = RST_OP;
 		alu_in_port.put(alu_data_in);
 
-		$display("&&&&&&&&& BASIC TESTER &&&&&&&&&");
 		repeat (4000) begin : tester_main
 			alu_data_in.A  = get_data();
 			alu_data_in.B  = get_data();
-			alu_data_in.op_set = get_op();
+			alu_data_in.op_set = get_valid_op();
 			alu_data_in.error_state = 1'b0;
 			alu_in_port.put(alu_data_in);
 		end
 
-		$display("&&&&&&&&& ERROR TESTER &&&&&&&&&");
-				
 		repeat(4000) begin   : tester_errors
 			alu_data_in.A  = get_data();
 			alu_data_in.B  = get_data();
 			alu_data_in.error_state = 1'b1;
 			get_error_code(alu_data_in.error_code);
-			alu_data_in.op_set = (alu_data_in.error_code == ERR_OP) ? INVALID_OP : get_op();
+			alu_data_in.op_set = (alu_data_in.error_code == ERR_OP) ? INVALID_OP : get_valid_op();
 			alu_in_port.put(alu_data_in);
 		end
 

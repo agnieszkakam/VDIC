@@ -26,20 +26,20 @@ package alu_pkg;
 
 	typedef struct packed {
 		logic  [31:0]  rcv_data;
-		logic  [7:0]   rcv_control_packet, error_response;
+		logic  [7:0]   rcv_control_packet;
 	} alu_data_out_s;
-	
+
 	typedef struct packed {
 		logic  [31:0]  A, B;
 		bit error_state;
 		operation_t op_set;
 		processing_error_t error_code;
 	} alu_data_in_s;
-	
+
 `include "command_monitor.svh"
 `include "result_monitor.svh"
 `include "driver.svh"
-	
+
 `include "coverage.svh"
 `include "base_tester.svh"
 `include "scoreboard.svh"

@@ -8,19 +8,19 @@ class env extends uvm_env;
 	random_tester tester_h;
 	driver driver_h;
 	uvm_tlm_fifo #(alu_data_in_s) command_f;
-	
+
 	coverage coverage_h;
 	scoreboard scoreboard_h;
 	command_monitor command_monitor_h;
 	result_monitor result_monitor_h;
-	
+
 	function new (string name, uvm_component parent);
 		super.new(name,parent);
 	endfunction : new
 
 	function void build_phase(uvm_phase phase);
 		command_f         = new("command_f", this);
-		tester_h   		  = random_tester::type_id::create("random_tester_h",this);
+		tester_h          = random_tester::type_id::create("random_tester_h",this);
 		driver_h          = driver::type_id::create("drive_h",this);
 		coverage_h        = coverage::type_id::create ("coverage_h",this);
 		scoreboard_h      = scoreboard::type_id::create("scoreboard_h",this);

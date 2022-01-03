@@ -20,18 +20,13 @@ class driver extends uvm_component;
 
 		forever begin : command_loop
 			alu_in_port.get(alu_data_in);
-			$display("DRIVER: cmd received: A=%h, B=%h, %s, ERR=%d(%s)", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name(), alu_data_in.error_state, alu_data_in.error_code.name() );
+			//$display("DRIVER: cmd received: A=%h, B=%h, %s, ERR=%d(%s)", alu_data_in.A, alu_data_in.B, alu_data_in.op_set.name(), alu_data_in.error_state, alu_data_in.error_code.name() );
 			case (alu_data_in.op_set)
 				RST_OP: begin : rst_op
 					bfm.reset_alu();
 				end
 				default: begin : norm_op
-					/*if (alu_data_in.error_state) begin
-						bfm.test_alu_processing_error(alu_data_in);
-					end
-					else begin*/
-						bfm.process_instruction(alu_data_in);
-					/*end*/
+					bfm.process_instruction(alu_data_in);
 				end
 			endcase
 

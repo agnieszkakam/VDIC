@@ -134,10 +134,9 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 		while (cmd.op_set == RST_OP);
 
 		case (cmd.error_state)
-			1'b0: begin		: CHK_NOMINAL
+			1'b0: begin     : CHK_NOMINAL
 
 				exp_packet = get_expected_result(cmd.A, cmd.B, cmd.op_set);
-				$display("expected_result:%x", exp_packet);
 				exp_result = exp_packet [39:8];
 				exp_ctl = exp_packet [7:0];
 
@@ -169,7 +168,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 
 				exp_ctl = get_expected_error_packet(cmd.error_code);
 
-				assert(exp_ctl === t.error_response) begin
+				assert(exp_ctl === t.rcv_control_packet) begin
 	 `ifdef DEBUG
 					$display("%0t Test passed for A=%08x B=%08x op_set=%s (%s)",
 						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name);
@@ -178,7 +177,7 @@ class scoreboard extends uvm_subscriber #(alu_data_out_s);
 				else begin
 					$warning("%0t Test FAILED for A=%08x B=%08x op_set=%s (%s)\nexp: %08b  rcv: %08b",
 						$time, cmd.A, cmd.B, cmd.op_set.name, cmd.error_code.name,
-						exp_ctl, t.error_response);
+						exp_ctl, t.rcv_control_packet);
 					test_result = "FAILED";
 				end;
 			end
