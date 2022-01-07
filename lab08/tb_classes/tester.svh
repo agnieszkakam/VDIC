@@ -12,12 +12,6 @@ class tester extends uvm_component;
 	endfunction : new
 
 //------------------------------------------------------------------------------
-// class methods
-//------------------------------------------------------------------------------
-
-
-
-//------------------------------------------------------------------------------
 // build_phase
 //------------------------------------------------------------------------------
 
@@ -41,7 +35,7 @@ class tester extends uvm_component;
 
 		command_h = random_command::type_id::create("command");     //factory-created cmd (transaction type) may be overwritten later on
 
-		repeat (10) begin : tester_main
+		repeat (4000) begin : tester_main
 			if(!command_h.randomize()) begin
 				`uvm_fatal("TESTER","Randomization failed.");
 			end else begin
@@ -51,7 +45,7 @@ class tester extends uvm_component;
 			end
 		end
 
-		repeat(10) begin   : tester_errors
+		repeat(4000) begin   : tester_errors
 			if(!command_h.randomize()) begin
 				`uvm_fatal("TESTER","Randomization failed.");
 			end else begin

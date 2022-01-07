@@ -8,8 +8,8 @@ class random_command extends uvm_transaction;
 	rand alu_data_in_s alu_command;
 
 	constraint data {
-		alu_command.A dist {[32'h0000_0001 : 32'hFFFF_FFFE]:=1};
-		alu_command.B dist {[32'h0000_0001 : 32'hFFFF_FFFE]:=1};
+		alu_command.A dist {32'h0000_0000:= 1, [32'h0000_0001 : 32'hFFFF_FFFE]:/1, 32'hFFFF_FFFF:=1};
+		alu_command.B dist {32'h0000_0000:= 1, [32'h0000_0001 : 32'hFFFF_FFFE]:/1, 32'hFFFF_FFFF:=1};
 	}
 
 //------------------------------------------------------------------------------
