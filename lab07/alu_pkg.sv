@@ -53,5 +53,6 @@ package alu_pkg;
 `include "random_test.svh"
 `include "minmax_test.svh"
 
+`include "sequence_item.svh"
 
 endpackage : alu_pkg
