@@ -23,8 +23,13 @@ class sequence_item extends uvm_sequence_item;
 //------------------------------------------------------------------------------
 
 	constraint data {
-		alu_command.A dist {[32'h0000_0001 : 32'hFFFF_FFFE]:=1};
-		alu_command.B dist {[32'h0000_0001 : 32'hFFFF_FFFE]:=1};
+		alu_command.A dist {32'h0000_0000 := 20, [32'h0000_0001 : 32'hFFFF_FFFF]:=1};
+		alu_command.B dist {[32'h0000_0000 : 32'hFFFF_FFFE]:=1, 32'hFFFF_FFFF := 20};
+		alu_command.error_code == ERR_OP -> alu_command.op_set == INVALID_OP;			// implication constraint
+		if (alu_command.op_set == INVALID_OP) {
+			alu_command.error_code == ERR_OP;
+			alu_command.error_state == 1'b1;
+		}
 	}
 
 //------------------------------------------------------------------------------

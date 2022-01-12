@@ -61,6 +61,9 @@ class scoreboard extends uvm_subscriber #(result_transaction);
 			operation_t op_set;
 
 			predicted = new("predicted");
+			predicted.alu_result.rcv_control_packet = 8'h00;
+			predicted.alu_result.rcv_data = 32'h0000_0000;
+			
 			A = cmd.alu_command.A;
 			B = cmd.alu_command.B;
 			op_set = cmd.alu_command.op_set;
@@ -141,10 +144,6 @@ class scoreboard extends uvm_subscriber #(result_transaction);
 		result_transaction predicted;
 		sequence_item cmd;
 
-		logic [39:0] exp_packet;
-		logic [31:0] exp_result;
-		logic [7:0] exp_ctl;
-
 		do
 			if (!command_f.try_get(cmd))
 				$fatal(1, "Missing command in self checker");
@@ -167,6 +166,7 @@ class scoreboard extends uvm_subscriber #(result_transaction);
 			`uvm_error("SELF CHECKER", {"\nFAIL: ", data_str});
 			test_result = "FAILED";
 		end else begin
+			//$display("SELF CHECKER: PASS", data_str);
 			`uvm_info("SELF CHECKER", {"\nPASS: ", data_str}, UVM_HIGH);
 		end
 

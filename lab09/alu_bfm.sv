@@ -46,6 +46,8 @@ interface alu_bfm;
 		$display("*** ALU RESET ***");
 		`endif
 
+		op_set = RST_OP; 		// added for coverage purposes
+
 		@(negedge clk) ;
 		rst_n = 1'b0;
 		@(negedge clk) ;

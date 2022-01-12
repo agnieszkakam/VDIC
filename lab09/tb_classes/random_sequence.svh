@@ -17,11 +17,14 @@ class random_sequence extends uvm_sequence #(sequence_item);
 
 	task body();
 		`uvm_info("SEQ_RANDOM","",UVM_MEDIUM)
-		//seq = sequence_item::type_id::create("seq");
-		seq = new("seq");
-//      `uvm_create(req);
 
-		repeat (5000) begin : random_loop
+		seq = new("seq");
+
+		start_item(seq);
+		seq.alu_command.op_set = RST_OP;
+		finish_item(seq);
+		
+		repeat (4000) begin : random_loop
 			start_item(seq);
 			if(!seq.randomize()) begin
 				`uvm_fatal("RANDOM_SEQUENCE", "Randomization failed.");
