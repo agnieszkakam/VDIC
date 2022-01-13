@@ -31,7 +31,7 @@ class command_monitor extends uvm_component;
 		transaction_cmd.alu_command.op_set = cmd.op_set;
 		transaction_cmd.alu_command.error_code = cmd.error_code;
 		transaction_cmd.alu_command.error_state = cmd.error_state;
-
+			
 		ap.write(transaction_cmd);
 		
 	endfunction : write_to_monitor

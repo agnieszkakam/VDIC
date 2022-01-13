@@ -24,6 +24,9 @@ class coverage extends uvm_subscriber #(random_command);
 			// #A4 two operations in row
 			bins A4_twoops[]       = ([AND_OP : OR_OP], [ADD_OP : SUB_OP] [* 2]);
 
+			// #A5 test invalid operation
+			bins A5_invalid_op[]   = INVALID_OP;
+
 		}
 
 	endgroup
@@ -89,10 +92,6 @@ class coverage extends uvm_subscriber #(random_command);
 			(binsof (a_leg.ones) && binsof (b_leg.ones));
 
 			ignore_bins others_only   = binsof(a_leg.others) && binsof(b_leg.others);
-
-			// #C4 simulate invalid OP on an input
-
-			bins C4_invalid_op        = binsof (error_leg.err_op);
 
 			// #C5 simulate invalid CRC on an input for all operations
 
