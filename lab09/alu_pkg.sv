@@ -34,30 +34,12 @@ package alu_pkg;
 	} alu_data_out_s;
 
 	typedef struct packed {
-		/*rand*/ logic  [31:0]  A, B;
-		/*rand*/ bit error_state;
-		/*rand*/ operation_t op_set;
-		/*rand*/ processing_error_t error_code;
+		logic  [31:0]  A, B;
+		bit error_state;
+		operation_t op_set;
+		processing_error_t error_code;
 	} alu_data_in_s;
 
-////////////////////////////////////////////////////////////
-// Functions
-////////////////////////////////////////////////////////////
-
-	function operation_t get_valid_op();
-		automatic bit [2:0] op_choice = $random;
-		case (op_choice)
-			3'b000, 3'b001, 3'b100, 3'b101, 3'b110 : return operation_t'(op_choice);
-			default: return AND_OP;
-		endcase // case (op_choice)
-	endfunction : get_valid_op
-
-	task get_error_code (output processing_error_t error_code);
-		begin
-			error_code = processing_error_t'(3'b000);
-			error_code[$urandom_range(2,0)] = 1'b1;
-		end
-	endtask
 
 ////////////////////////////////////////////////////////////
 // Sequence items
